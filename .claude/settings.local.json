@@ -25,7 +25,18 @@
       "Bash(HOME=/tmp ./note:*)",
       "Bash(HOME=/tmp /home/bobby/Projects/note/note -l daily standup)",
       "Bash(HOME=/tmp /home/bobby/Projects/note/note -l daily:*)",
-      "Bash(HOME=/tmp HOME=/tmp /home/bobby/Projects/note/note -l daily standup)"
+      "Bash(HOME=/tmp HOME=/tmp /home/bobby/Projects/note/note -l daily standup)",
+      "Bash(mkdir:*)",
+      "Bash(ln:*)",
+      "Bash(HOME=\"$(pwd)\" ./note -l)",
+      "Bash(cp:*)",
+      "Bash(HOME=\"$(pwd)\" ./note -l)",
+      "Bash(HOME=\"$(pwd)\" ./note -l)",
+      "Bash(HOME=\"$(pwd)\" ./note -l)",
+      "Bash(HOME=\"$(pwd)\" ./note -l sample)",
+      "Bash(HOME=\"$(pwd)\" ./note -l)",
+      "Bash(HOME=\"$(pwd)\" ./note -l)",
+      "Bash(echo $HOME)"
     ],
     "deny": []
   }

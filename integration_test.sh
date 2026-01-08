@@ -138,6 +138,21 @@ run_test "Case-insensitive search finds uppercase" "$NOTE_CMD -l meeting | grep 
 echo "Test content" > "$TEST_DIR/Notes/project notes with spaces-$TODAY.md"
 run_test "Search finds files with spaces in name" "$NOTE_CMD -l project | grep -q 'project.*spaces'" ""
 
+# Test 22: Symbolic link support
+echo "editor=vim" > "$TEST_DIR/.note" && echo "notesdir=$TEST_DIR/Notes" >> "$TEST_DIR/.note"
+mkdir -p "$TEST_DIR/real-notes-dir"
+echo "Symlink test content" > "$TEST_DIR/real-notes-dir/symlink-test-$TODAY.md"
+ln -sf "$TEST_DIR/real-notes-dir" "$TEST_DIR/symlink-to-notes" 2>/dev/null || {
+    echo "Skipping symlink test: ln command failed"
+}
+if [ -L "$TEST_DIR/symlink-to-notes" ]; then
+    echo "notesdir=$TEST_DIR/symlink-to-notes" > "$TEST_DIR/.note" && echo "editor=vim" >> "$TEST_DIR/.note"
+    run_test "Symlink notes directory works" "$NOTE_CMD -l | grep -q 'symlink-test'" ""
+else
+    echo "Testing: Symlink notes directory works... SKIPPED (symlinks not supported)"
+    ((TESTS_PASSED++))
+fi
+
 # Cleanup
 rm -rf "$TEST_DIR"
 

@@ -28,6 +28,58 @@ func TestExpandPath(t *testing.T) {
 	}
 }
 
+func TestExpandPathWithSymlinks(t *testing.T) {
+	// Create a temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "note-symlink-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+	
+	// Create real directory
+	realDir := filepath.Join(tempDir, "real-notes")
+	if err := os.MkdirAll(realDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	
+	// Create symbolic link
+	symlinkDir := filepath.Join(tempDir, "symlink-notes")
+	if err := os.Symlink(realDir, symlinkDir); err != nil {
+		t.Skip("Skipping symlink test: symlink creation failed (might not be supported)")
+	}
+	
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Regular path",
+			input:    realDir,
+			expected: realDir,
+		},
+		{
+			name:     "Symbolic link path",
+			input:    symlinkDir,
+			expected: realDir, // Should resolve to the real directory
+		},
+		{
+			name:     "Non-existent path",
+			input:    filepath.Join(tempDir, "non-existent"),
+			expected: filepath.Join(tempDir, "non-existent"), // Should return original if can't resolve
+		},
+	}
+	
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := expandPath(test.input)
+			if result != test.expected {
+				t.Errorf("expandPath(%s) = %s; want %s", test.input, result, test.expected)
+			}
+		})
+	}
+}
+
 func TestFindMatchingNotes(t *testing.T) {
 	// Create temp directory for testing
 	tempDir, err := os.MkdirTemp("", "note-test")

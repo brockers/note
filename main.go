@@ -822,11 +822,21 @@ func cleanupShellConfig(configFile string) {
 }
 
 func expandPath(path string) string {
+	// Handle tilde expansion first
 	if strings.HasPrefix(path, "~/") {
 		homeDir, _ := os.UserHomeDir()
-		return filepath.Join(homeDir, path[2:])
+		path = filepath.Join(homeDir, path[2:])
 	}
-	return path
+	
+	// Resolve symbolic links to get the actual path
+	resolvedPath, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		// If we can't resolve symlinks, return the original path
+		// This handles cases where the path doesn't exist yet or other errors
+		return path
+	}
+	
+	return resolvedPath
 }
 
 func openOrCreateNote(config Config, noteName string) {
