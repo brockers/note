@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go mod init:*)",
+      "Bash(go:*)",
+      "Bash(./note --help)",
+      "Bash(chmod:*)",
+      "Bash(./integration_test.sh:*)",
+      "Bash(./note -ls)",
+      "Bash(./note -s \"TODO\")",
+      "Bash(./note:*)",
+      "Bash(make test:*)",
+      "Bash(make:*)"
+    ],
+    "deny": []
+  }
+}

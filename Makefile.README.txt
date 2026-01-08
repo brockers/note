@@ -1,0 +1,79 @@
+# Makefile Usage Guide for Note CLI
+
+This file explains how to use the Makefile for the `note` project.
+
+## 🔨 Available Make Targets
+
+### Building
+make build          # Build the 'note' binary in current directory
+make clean          # Remove build artifacts (note binary, go clean)
+
+### Testing
+make test           # Run unit tests (go test -v)
+make integration-test    # Run integration tests (requires build first)
+make test-all       # Run both unit and integration tests
+
+### Code Quality
+make fmt            # Format Go code (go fmt)
+make vet            # Run Go vet for static analysis
+
+### Installation
+make install        # Install system-wide to /usr/local/bin (requires sudo)
+make uninstall      # Remove from system (requires sudo)
+
+### Development
+make dev            # Build and show help (quick dev test)
+
+## 📋 Common Workflows
+
+### First Time Setup
+# Build and test everything
+make clean build test-all
+
+# Try the application
+make dev
+
+### Development Cycle
+# Make changes, then:
+make fmt            # Format code
+make vet            # Check for issues
+make test           # Run unit tests
+make build          # Build new binary
+./note --help       # Test manually
+
+### Before Committing
+make test-all       # Run all tests
+make fmt            # Format code
+
+### Installation
+# Install system-wide
+sudo make install
+
+# This will:
+# 1. Copy 'note' to /usr/local/bin/
+# 2. Install bash completions to /etc/bash_completion.d/
+# 3. Make it available in your PATH
+
+# To remove later:
+sudo make uninstall
+
+## 💡 Tips
+
+- No arguments: Just run `make` - it defaults to `make build`
+- Parallel jobs: Use `make -j4` for faster builds (though not much benefit here)
+- Verbose output: Most targets already include verbose flags
+- Dependencies: Targets automatically handle dependencies (e.g., `integration-test` runs `build` first)
+
+## 🔧 Target Dependencies
+
+build           -> (no dependencies)
+test            -> (no dependencies)  
+integration-test -> build
+test-all        -> test, integration-test
+install         -> build
+dev             -> build
+clean           -> (no dependencies)
+fmt             -> (no dependencies)
+vet             -> (no dependencies)
+
+The Makefile automates all common development tasks while following Go and Unix conventions!

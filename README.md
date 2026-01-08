@@ -1,6 +1,6 @@
 # note
 
-A go based stand-alone executable commandline tool for taking notes in your favorite text editor in markdown format.
+A minimalist, opinionated command-line note-taking tool written in Go. Take notes in your favorite text editor with automatic date stamping, simple organization, and zero lock-in - just plain markdown files.
 
 note includes:
 
@@ -130,3 +130,66 @@ note -a Notes
 ### Help
 
 You can always get help via: `note -h` or `note --help`
+
+## Installation
+
+### From Source
+
+Requirements:
+- Go 1.21 or later
+
+```bash
+# Clone the repository
+git clone https://github.com/bobby/note.git
+cd note
+
+# Build the binary
+make build
+# Or directly with go:
+# go build -o note
+
+# Install system-wide (optional, requires sudo)
+make install
+
+# Or copy manually to your PATH:
+# cp note ~/bin/  # or wherever you keep personal binaries
+```
+
+### Bash Completion
+
+To enable tab completion for bash:
+
+```bash
+# If installed via make install, completions are already in place
+# Otherwise, source the completion script:
+source completions/bash/note
+```
+
+## Development
+
+```bash
+# Run tests
+make test
+
+# Run integration tests
+make integration-test
+
+# Run all tests
+make test-all
+
+# Format code
+make fmt
+
+# Clean build artifacts
+make clean
+```
+
+## Philosophy
+
+`note` follows the Unix philosophy: do one thing well and compose with other tools. It's intentionally minimal and opinionated to provide a frictionless note-taking experience for terminal users.
+
+- **No databases**: Just markdown files in folders
+- **No sync built-in**: Use git, Dropbox, or any sync tool you prefer  
+- **No tags or categories**: Use your filesystem and grep
+- **No dependencies**: Single static binary
+- **No lock-in**: Your notes are just text files
