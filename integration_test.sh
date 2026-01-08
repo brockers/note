@@ -98,7 +98,14 @@ run_test "Pattern preserves non-matching" "test -f $TEST_DIR/Notes/keep-$TODAY.m
 touch "$TEST_DIR/Notes/note with spaces-$TODAY.md"
 run_test "Handles spaces in names" "$NOTE_CMD -ls | grep -q 'note with spaces'" ""
 
-# Test 13: Config modification (now includes autocomplete prompt)
+# Test 13: Opening existing files without .md extension
+echo "Test content" > "$TEST_DIR/Notes/existing-note-20240426.md"
+echo "editor=echo" > "$TEST_DIR/.note.bak" && mv "$TEST_DIR/.note" "$TEST_DIR/.note.bak2" && cp "$TEST_DIR/.note.bak2" "$TEST_DIR/.note" && sed -i 's/editor=vim/editor=echo/' "$TEST_DIR/.note"
+RESULT=$($NOTE_CMD existing-note-20240426 2>&1 | tr -d '\n')
+echo "editor=vim" > "$TEST_DIR/.note" && echo "notesdir=$TEST_DIR/Notes" >> "$TEST_DIR/.note"
+run_test "Opens existing file without adding new date" "echo '$RESULT' | grep -q 'existing-note-20240426.md'" ""
+
+# Test 14: Config modification (now includes autocomplete prompt)
 echo -e "nano\n$TEST_DIR/NewNotes\nn\n" | $NOTE_CMD --config > /dev/null 2>&1
 run_test "Config updates editor" "grep -q 'editor=nano' $TEST_DIR/.note" ""
 

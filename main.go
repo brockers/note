@@ -772,7 +772,7 @@ func expandPath(path string) string {
 }
 
 func openOrCreateNote(config Config, noteName string) {
-	// Check if it's a specific file with date already
+	// Check if it's a specific file with .md extension
 	if strings.HasSuffix(noteName, ".md") {
 		// Open specific file
 		notePath := filepath.Join(config.NotesDir, noteName)
@@ -780,7 +780,17 @@ func openOrCreateNote(config Config, noteName string) {
 		return
 	}
 
-	// Generate today's date
+	// Check if there's an exact match for noteName.md (existing file)
+	// This handles cases like 'roloText-Meeting-Notes-20240426' which should open 'roloText-Meeting-Notes-20240426.md'
+	exactFileName := noteName + ".md"
+	exactPath := filepath.Join(config.NotesDir, exactFileName)
+	if _, err := os.Stat(exactPath); err == nil {
+		// Exact file exists, open it
+		openInEditor(config.Editor, exactPath)
+		return
+	}
+
+	// Generate today's date for new file
 	today := time.Now().Format("20060102")
 	filename := fmt.Sprintf("%s-%s.md", noteName, today)
 	notePath := filepath.Join(config.NotesDir, filename)
@@ -802,7 +812,7 @@ func openOrCreateNote(config Config, noteName string) {
 		fmt.Println()
 	}
 
-	// Create new note
+	// Create new note with today's date
 	openInEditor(config.Editor, notePath)
 }
 
