@@ -35,6 +35,58 @@ type Config struct {
 	NotesDir string
 }
 
+// ANSI color codes for terminal highlighting
+const (
+	ColorRed   = "\033[31m"
+	ColorReset = "\033[0m"
+)
+
+// isOutputToTerminal checks if stdout is a terminal (not piped)
+func isOutputToTerminal() bool {
+	fileInfo, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+	return (fileInfo.Mode() & os.ModeCharDevice) != 0
+}
+
+// highlightTerm highlights the search term in the text with red color
+func highlightTerm(text, term string) string {
+	if term == "" || !isOutputToTerminal() {
+		return text
+	}
+	
+	// Case-insensitive highlighting
+	lowerText := strings.ToLower(text)
+	lowerTerm := strings.ToLower(term)
+	
+	// Find all occurrences and highlight them
+	result := text
+	startPos := 0
+	for {
+		pos := strings.Index(lowerText[startPos:], lowerTerm)
+		if pos == -1 {
+			break
+		}
+		
+		actualPos := startPos + pos
+		// Preserve original case in the highlight
+		originalTerm := text[actualPos : actualPos+len(term)]
+		highlighted := ColorRed + originalTerm + ColorReset
+		
+		result = result[:actualPos] + highlighted + result[actualPos+len(term):]
+		
+		// Adjust positions accounting for added color codes
+		colorCodeLength := len(ColorRed) + len(ColorReset)
+		startPos = actualPos + len(term) + colorCodeLength
+		
+		// Update lowerText to match result changes
+		lowerText = strings.ToLower(result)
+	}
+	
+	return result
+}
+
 func main() {
 	config := loadOrCreateConfig()
 
@@ -74,7 +126,9 @@ func main() {
 	if *listFlag || *listFlagAlt {
 		pattern := ""
 		if flag.NArg() > 0 {
-			pattern = flag.Arg(0)
+			// Join all arguments to handle spaces in search patterns
+			noteArgs := flag.Args()
+			pattern = strings.Join(noteArgs, " ")
 		}
 		listNotes(config, pattern, false)
 		return
@@ -84,7 +138,9 @@ func main() {
 	if *archiveFlag {
 		pattern := ""
 		if flag.NArg() > 0 {
-			pattern = flag.Arg(0)
+			// Join all arguments to handle spaces in search patterns
+			noteArgs := flag.Args()
+			pattern = strings.Join(noteArgs, " ")
 		}
 		listNotes(config, pattern, true)
 		return
@@ -855,7 +911,12 @@ func listNotes(config Config, pattern string, includeArchived bool) {
 	sort.Strings(allNotes)
 
 	for _, note := range allNotes {
-		fmt.Println(note)
+		// Apply highlighting if pattern is provided and output is to terminal
+		if pattern != "" {
+			fmt.Println(highlightTerm(note, pattern))
+		} else {
+			fmt.Println(note)
+		}
 	}
 }
 

@@ -109,6 +109,35 @@ run_test "Opens existing file without adding new date" "echo '$RESULT' | grep -q
 echo -e "nano\n$TEST_DIR/NewNotes\nn\n" | $NOTE_CMD --config > /dev/null 2>&1
 run_test "Config updates editor" "grep -q 'editor=nano' $TEST_DIR/.note" ""
 
+# Test 15: Search highlighting functionality
+echo "editor=vim" > "$TEST_DIR/.note" && echo "notesdir=$TEST_DIR/Notes" >> "$TEST_DIR/.note"
+echo "Content about meetings" > "$TEST_DIR/Notes/meeting-highlights-$TODAY.md"
+echo "Daily standup notes" > "$TEST_DIR/Notes/daily-standup-$TODAY.md"
+echo "Project planning session" > "$TEST_DIR/Notes/project-planning-$TODAY.md"
+echo "Notes about daily meetings" > "$TEST_DIR/Notes/daily meetings notes-$TODAY.md"
+
+# Test 16: Multi-word search patterns (tests argument joining functionality)
+run_test "Multi-word search finds matches" "$NOTE_CMD -l daily meetings | grep -q 'daily meetings notes'" ""
+
+# Test 17: Piped output has no color codes (should be clean)
+PIPED_OUTPUT=$($NOTE_CMD -l meeting | cat)
+run_test "Piped output contains no ANSI color codes" "echo '$PIPED_OUTPUT' | grep -v '\[31m'" ""
+
+# Test 18: Redirected output has no color codes
+$NOTE_CMD -l meeting > "$TEST_DIR/output.txt" 2>&1
+run_test "Redirected output contains no ANSI color codes" "! grep -q '\[31m' $TEST_DIR/output.txt" ""
+
+# Test 19: Search with no matches
+run_test "Search with no matches returns nothing" "! $NOTE_CMD -l nonexistent | grep -q '.'" ""
+
+# Test 20: Case-insensitive search highlighting
+echo "MEETING NOTES" > "$TEST_DIR/Notes/MEETING-UPPERCASE-$TODAY.md"
+run_test "Case-insensitive search finds uppercase" "$NOTE_CMD -l meeting | grep -q 'MEETING-UPPERCASE'" ""
+
+# Test 21: Search pattern with spaces in existing filenames
+echo "Test content" > "$TEST_DIR/Notes/project notes with spaces-$TODAY.md"
+run_test "Search finds files with spaces in name" "$NOTE_CMD -l project | grep -q 'project.*spaces'" ""
+
 # Cleanup
 rm -rf "$TEST_DIR"
 

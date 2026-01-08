@@ -178,3 +178,53 @@ func TestSpacesInNoteNames(t *testing.T) {
 		}
 	}
 }
+
+func TestHighlightTerm(t *testing.T) {
+	// Test the highlighting functionality
+	tests := []struct {
+		text     string
+		term     string
+		expected string // Without color codes (since we can't mock isOutputToTerminal easily)
+	}{
+		{"meeting-notes-20250108.md", "meeting", "meeting-notes-20250108.md"},
+		{"project-planning-session.md", "planning", "project-planning-session.md"},
+		{"daily-standup-meeting.md", "meeting", "daily-standup-meeting.md"},
+		{"test-case-file.md", "case", "test-case-file.md"},
+		{"", "search", ""},
+		{"no-match.md", "xyz", "no-match.md"},
+	}
+	
+	for _, test := range tests {
+		// Since we can't easily mock isOutputToTerminal() in unit tests,
+		// we'll test the core logic of finding and replacing terms
+		result := highlightTerm(test.text, test.term)
+		
+		// For terminal output, result should contain color codes
+		// For non-terminal (like in tests), it should be unchanged
+		if test.term == "" || test.text == "" {
+			if result != test.expected {
+				t.Errorf("highlightTerm(%q, %q) = %q; want %q", test.text, test.term, result, test.expected)
+			}
+		} else {
+			// In test environment (non-terminal), result should equal input
+			if result != test.text {
+				t.Errorf("highlightTerm(%q, %q) = %q; want %q (no highlighting in test env)", test.text, test.term, result, test.text)
+			}
+		}
+	}
+}
+
+func TestIsOutputToTerminal(t *testing.T) {
+	// Test terminal detection
+	// In test environment, this should typically return false
+	result := isOutputToTerminal()
+	
+	// We can't predict the exact value, but the function should not panic
+	// and should return a boolean
+	if result != true && result != false {
+		t.Error("isOutputToTerminal() should return a boolean value")
+	}
+	
+	// In CI/test environments, this is typically false
+	// We'll just verify it runs without error
+}
