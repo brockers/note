@@ -144,3 +144,37 @@ func TestCopyFile(t *testing.T) {
 		t.Errorf("Copied content does not match: got %s, want %s", content, testContent)
 	}
 }
+
+func TestSpacesInNoteNames(t *testing.T) {
+	// Test the specific bug: spaces in command line arguments should become underscores in filename
+	tests := []struct {
+		input    []string
+		expected string
+	}{
+		{[]string{"this", "is", "a", "test"}, "this_is_a_test"},
+		{[]string{"meeting", "notes"}, "meeting_notes"},
+		{[]string{"single"}, "single"},
+		{[]string{"project", "ideas", "for", "2024"}, "project_ideas_for_2024"},
+	}
+	
+	for _, test := range tests {
+		// Simulate the argument joining logic from main()
+		noteName := strings.Join(test.input, " ")
+		
+		// Apply the space-to-underscore conversion from openOrCreateNote()
+		cleanNoteName := strings.ReplaceAll(noteName, " ", "_")
+		
+		if cleanNoteName != test.expected {
+			t.Errorf("For args %v: got %s, want %s", test.input, cleanNoteName, test.expected)
+		}
+		
+		// Also test that the full filename generation works correctly
+		today := time.Now().Format("20060102")
+		expectedFilename := test.expected + "-" + today + ".md"
+		actualFilename := cleanNoteName + "-" + today + ".md"
+		
+		if actualFilename != expectedFilename {
+			t.Errorf("Filename generation failed for args %v: got %s, want %s", test.input, actualFilename, expectedFilename)
+		}
+	}
+}

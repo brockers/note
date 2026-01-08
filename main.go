@@ -109,7 +109,9 @@ func main() {
 		return
 	}
 
-	noteName := flag.Arg(0)
+	// Join all arguments to handle spaces in note names
+	noteArgs := flag.Args()
+	noteName := strings.Join(noteArgs, " ")
 	openOrCreateNote(config, noteName)
 }
 
@@ -792,7 +794,9 @@ func openOrCreateNote(config Config, noteName string) {
 
 	// Generate today's date for new file
 	today := time.Now().Format("20060102")
-	filename := fmt.Sprintf("%s-%s.md", noteName, today)
+	// Replace spaces with underscores for filename
+	cleanNoteName := strings.ReplaceAll(noteName, " ", "_")
+	filename := fmt.Sprintf("%s-%s.md", cleanNoteName, today)
 	notePath := filepath.Join(config.NotesDir, filename)
 
 	// Check if note already exists for today
