@@ -219,6 +219,9 @@ func runSetup() Config {
 		os.Exit(1)
 	}
 
+	// Ask about command line completion
+	setupCompletion(reader)
+
 	// Save config
 	saveConfig(config)
 	return config
@@ -247,6 +250,241 @@ func saveConfig(config Config) {
 
 	fmt.Fprintf(file, "editor=%s\n", config.Editor)
 	fmt.Fprintf(file, "notesdir=%s\n", notesDir)
+}
+
+func setupCompletion(reader *bufio.Reader) {
+	// Check if completion is already set up
+	if isCompletionAlreadySetup() {
+		return
+	}
+
+	fmt.Println()
+	fmt.Print("Would you like to set up command line completion for note? (y/N): ")
+	response, _ := reader.ReadString('\n')
+	response = strings.ToLower(strings.TrimSpace(response))
+	
+	if response != "y" && response != "yes" {
+		fmt.Println("Skipping completion setup. You can run 'note --config' later to set it up.")
+		return
+	}
+
+	shell := detectShell()
+	if shell == "" {
+		fmt.Println("Could not detect shell type. Skipping completion setup.")
+		return
+	}
+
+	switch shell {
+	case "bash":
+		setupBashCompletion()
+	case "zsh":
+		setupZshCompletion()
+	case "fish":
+		setupFishCompletion()
+	default:
+		fmt.Printf("Shell '%s' not supported for completion. Supported shells: bash, zsh, fish\n", shell)
+	}
+}
+
+func isCompletionAlreadySetup() bool {
+	shell := detectShell()
+	if shell == "" {
+		return false
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return false
+	}
+
+	switch shell {
+	case "bash":
+		// Check .bashrc or .bash_profile for note completion
+		bashFiles := []string{".bashrc", ".bash_profile", ".profile"}
+		for _, file := range bashFiles {
+			if checkFileForCompletionSource(filepath.Join(homeDir, file)) {
+				return true
+			}
+		}
+	case "zsh":
+		// Check .zshrc for note completion
+		if checkFileForCompletionSource(filepath.Join(homeDir, ".zshrc")) {
+			return true
+		}
+	case "fish":
+		// Check fish completion directory
+		fishCompletionDir := filepath.Join(homeDir, ".config", "fish", "completions")
+		noteCompletionFile := filepath.Join(fishCompletionDir, "note.fish")
+		if _, err := os.Stat(noteCompletionFile); err == nil {
+			return true
+		}
+	}
+
+	return false
+}
+
+func checkFileForCompletionSource(filePath string) bool {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return false
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if strings.Contains(line, "note") && (strings.Contains(line, "complete") || strings.Contains(line, "completion")) {
+			return true
+		}
+	}
+	return false
+}
+
+func detectShell() string {
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		return ""
+	}
+
+	// Extract shell name from path
+	shellName := filepath.Base(shell)
+	
+	// Map common shell variants
+	switch shellName {
+	case "bash":
+		return "bash"
+	case "zsh":
+		return "zsh"
+	case "fish":
+		return "fish"
+	default:
+		return shellName
+	}
+}
+
+func setupBashCompletion() {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting home directory: %v\n", err)
+		return
+	}
+
+	// Get the path to the completion script
+	executablePath, err := os.Executable()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting executable path: %v\n", err)
+		return
+	}
+	
+	completionScriptPath := filepath.Join(filepath.Dir(executablePath), "completions", "bash", "note")
+	
+	// Check if the completion script exists
+	if _, err := os.Stat(completionScriptPath); os.IsNotExist(err) {
+		fmt.Printf("Completion script not found at %s\n", completionScriptPath)
+		return
+	}
+
+	// Add source line to .bashrc
+	bashrcPath := filepath.Join(homeDir, ".bashrc")
+	sourceLine := fmt.Sprintf("\n# note command completion\nsource %s\n", completionScriptPath)
+	
+	file, err := os.OpenFile(bashrcPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening .bashrc: %v\n", err)
+		return
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString(sourceLine); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing to .bashrc: %v\n", err)
+		return
+	}
+
+	fmt.Printf("✓ Bash completion setup complete!\n")
+	fmt.Printf("  Added source line to %s\n", bashrcPath)
+	fmt.Printf("  Restart your shell or run: source %s\n", bashrcPath)
+}
+
+func setupZshCompletion() {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting home directory: %v\n", err)
+		return
+	}
+
+	// Get the path to the completion script  
+	executablePath, err := os.Executable()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting executable path: %v\n", err)
+		return
+	}
+	
+	completionScriptPath := filepath.Join(filepath.Dir(executablePath), "completions", "bash", "note")
+	
+	// Check if the completion script exists
+	if _, err := os.Stat(completionScriptPath); os.IsNotExist(err) {
+		fmt.Printf("Completion script not found at %s\n", completionScriptPath)
+		return
+	}
+
+	// Add source line to .zshrc
+	zshrcPath := filepath.Join(homeDir, ".zshrc")
+	sourceLine := fmt.Sprintf("\n# note command completion\nautoload -U +X compinit && compinit\nsource %s\n", completionScriptPath)
+	
+	file, err := os.OpenFile(zshrcPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening .zshrc: %v\n", err)
+		return
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString(sourceLine); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing to .zshrc: %v\n", err)
+		return
+	}
+
+	fmt.Printf("✓ Zsh completion setup complete!\n")
+	fmt.Printf("  Added source line to %s\n", zshrcPath)
+	fmt.Printf("  Restart your shell or run: source %s\n", zshrcPath)
+}
+
+func setupFishCompletion() {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting home directory: %v\n", err)
+		return
+	}
+
+	// Create fish completion directory if it doesn't exist
+	fishCompletionDir := filepath.Join(homeDir, ".config", "fish", "completions")
+	if err := os.MkdirAll(fishCompletionDir, 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating fish completion directory: %v\n", err)
+		return
+	}
+
+	// Create a simple fish completion script
+	fishCompletionScript := `# note command completion for fish
+complete -c note -f
+complete -c note -s l -s ls -d "List notes"
+complete -c note -s s -d "Search notes" -r
+complete -c note -s a -d "Include archived notes"
+complete -c note -s rm -d "Archive notes" -r
+complete -c note -l config -d "Run setup/reconfigure"
+complete -c note -s h -l help -d "Show help"
+
+# Complete with existing note names for main argument
+complete -c note -n '__fish_is_first_token' -a '(if test -f ~/.note; set notesdir (grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|"); if test -d "$notesdir"; find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \\; 2>/dev/null | sort; end; end)'
+`
+
+	noteCompletionFile := filepath.Join(fishCompletionDir, "note.fish")
+	if err := os.WriteFile(noteCompletionFile, []byte(fishCompletionScript), 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing fish completion script: %v\n", err)
+		return
+	}
+
+	fmt.Printf("✓ Fish completion setup complete!\n")
+	fmt.Printf("  Created completion file at %s\n", noteCompletionFile)
+	fmt.Printf("  Restart your shell to activate completions\n")
 }
 
 func expandPath(path string) string {
