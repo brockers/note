@@ -1,3 +1,20 @@
+/*
+Copyright (C) 2025  Note CLI Contributors
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 package main
 
 import (
@@ -23,14 +40,15 @@ func main() {
 
 	// Parse flags
 	var (
-		listFlag    = flag.Bool("ls", false, "List all current notes")
-		listFlagAlt = flag.Bool("l", false, "List all current notes (short form)")
-		searchFlag  = flag.String("s", "", "Full-text search in notes")
-		archiveFlag = flag.Bool("a", false, "List/search all notes including archived")
-		removeFlag  = flag.String("rm", "", "Archive matching notes")
-		configFlag  = flag.Bool("config", false, "Run setup/reconfigure")
-		helpFlag    = flag.Bool("help", false, "Show help")
-		helpFlagAlt = flag.Bool("h", false, "Show help (short form)")
+		listFlag        = flag.Bool("ls", false, "List all current notes")
+		listFlagAlt     = flag.Bool("l", false, "List all current notes (short form)")
+		searchFlag      = flag.String("s", "", "Full-text search in notes")
+		archiveFlag     = flag.Bool("a", false, "List/search all notes including archived")
+		removeFlag      = flag.String("rm", "", "Archive matching notes")
+		configFlag      = flag.Bool("config", false, "Run setup/reconfigure")
+		autocompleteFlag = flag.Bool("autocomplete", false, "Setup/update command line autocompletion")
+		helpFlag        = flag.Bool("help", false, "Show help")
+		helpFlagAlt     = flag.Bool("h", false, "Show help (short form)")
 	)
 	flag.Parse()
 
@@ -43,6 +61,12 @@ func main() {
 	// Handle config
 	if *configFlag {
 		runSetup()
+		return
+	}
+
+	// Handle autocomplete setup
+	if *autocompleteFlag {
+		runAutocompleteSetup()
 		return
 	}
 
@@ -389,7 +413,7 @@ _note_complete() {
     if [[ ${COMP_CWORD} -eq 1 ]]; then
         # If user starts typing a dash, offer flags
         if [[ "$cur" == -* ]]; then
-            local flags="-ls -l -s -a -rm --config --help -h"
+            local flags="-ls -l -s -a -rm --config --autocomplete --help -h"
             COMPREPLY=($(compgen -W "$flags" -- "${cur}"))
         else
             # Otherwise, prioritize note names
@@ -463,7 +487,7 @@ _note_complete() {
     if [[ $CURRENT -eq 2 ]]; then
         # If user starts typing a dash, offer flags
         if [[ "$cur" == -* ]]; then
-            local flags=("-ls" "-l" "-s" "-a" "-rm" "--config" "--help" "-h")
+            local flags=("-ls" "-l" "-s" "-a" "-rm" "--config" "--autocomplete" "--help" "-h")
             compadd -a flags
         else
             # Otherwise, prioritize note names
@@ -542,6 +566,7 @@ complete -c note -s s -d "Search notes" -r
 complete -c note -s a -d "Include archived notes"
 complete -c note -s rm -d "Archive notes" -r
 complete -c note -l config -d "Run setup/reconfigure"
+complete -c note -l autocomplete -d "Setup/update command line autocompletion"
 complete -c note -s h -l help -d "Show help"
 
 # Complete with existing note names for main argument
@@ -557,6 +582,154 @@ complete -c note -n '__fish_is_first_token' -a '(if test -f ~/.note; set notesdi
 	fmt.Printf("✓ Fish completion setup complete!\n")
 	fmt.Printf("  Created completion file at %s\n", noteCompletionFile)
 	fmt.Printf("  Restart your shell to activate completions\n")
+}
+
+func runAutocompleteSetup() {
+	reader := bufio.NewReader(os.Stdin)
+	
+	fmt.Println("note - Command Line Autocompletion Setup")
+	fmt.Println()
+	fmt.Println("This will set up tab completion for the note command, allowing you to:")
+	fmt.Println("• Tab-complete note names")
+	fmt.Println("• Tab-complete command flags")
+	fmt.Println("• Get context-aware completions")
+	fmt.Println()
+	fmt.Print("Would you like to set up autocompletion? (y/N): ")
+	
+	response, _ := reader.ReadString('\n')
+	response = strings.ToLower(strings.TrimSpace(response))
+	
+	if response != "y" && response != "yes" {
+		fmt.Println("Autocompletion setup cancelled.")
+		return
+	}
+
+	shell := detectShell()
+	if shell == "" {
+		fmt.Println("Could not detect shell type. Skipping completion setup.")
+		fmt.Println("Supported shells: bash, zsh, fish")
+		return
+	}
+
+	fmt.Printf("Detected shell: %s\n", shell)
+	fmt.Println()
+
+	// Clean up any existing completion setup
+	fmt.Println("Cleaning up any existing completion setup...")
+	cleanupExistingCompletion(shell)
+
+	// Set up completion for the detected shell
+	fmt.Printf("Setting up %s completion...\n", shell)
+	switch shell {
+	case "bash":
+		setupBashCompletion()
+	case "zsh":
+		setupZshCompletion()
+	case "fish":
+		setupFishCompletion()
+	default:
+		fmt.Printf("Shell '%s' not supported for completion. Supported shells: bash, zsh, fish\n", shell)
+		return
+	}
+
+	fmt.Println()
+	fmt.Println("✓ Autocompletion setup complete!")
+	fmt.Println("  To activate, run one of:")
+	
+	homeDir, _ := os.UserHomeDir()
+	switch shell {
+	case "bash":
+		fmt.Printf("    source ~/.bashrc\n")
+		fmt.Printf("    source %s\n", filepath.Join(homeDir, ".note.bash"))
+	case "zsh":
+		fmt.Printf("    source ~/.zshrc\n")
+		fmt.Printf("    source %s\n", filepath.Join(homeDir, ".note.zsh"))
+	case "fish":
+		fmt.Println("    (restart your shell)")
+	}
+	fmt.Println("  Or simply restart your shell")
+}
+
+func cleanupExistingCompletion(shell string) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+
+	switch shell {
+	case "bash":
+		// Remove existing .note.bash file
+		bashCompletionFile := filepath.Join(homeDir, ".note.bash")
+		os.Remove(bashCompletionFile)
+		
+		// Clean up shell config files
+		cleanupShellConfig(filepath.Join(homeDir, ".bashrc"))
+		cleanupShellConfig(filepath.Join(homeDir, ".bash_profile"))
+		cleanupShellConfig(filepath.Join(homeDir, ".profile"))
+		
+	case "zsh":
+		// Remove existing .note.zsh file
+		zshCompletionFile := filepath.Join(homeDir, ".note.zsh")
+		os.Remove(zshCompletionFile)
+		
+		// Clean up .zshrc
+		cleanupShellConfig(filepath.Join(homeDir, ".zshrc"))
+		
+	case "fish":
+		// Remove existing fish completion file
+		fishCompletionDir := filepath.Join(homeDir, ".config", "fish", "completions")
+		noteCompletionFile := filepath.Join(fishCompletionDir, "note.fish")
+		os.Remove(noteCompletionFile)
+	}
+}
+
+func cleanupShellConfig(configFile string) {
+	// Read the file
+	file, err := os.Open(configFile)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	skipNext := false
+	
+	for scanner.Scan() {
+		line := scanner.Text()
+		
+		// Skip lines that contain note completion references
+		if strings.Contains(line, "# note command completion") {
+			skipNext = true
+			continue
+		}
+		
+		if skipNext && (strings.Contains(line, ".note.bash") || 
+			strings.Contains(line, ".note.zsh") || 
+			strings.Contains(line, "completions/bash/note") ||
+			(strings.Contains(line, "note") && strings.Contains(line, "source"))) {
+			skipNext = false
+			continue
+		}
+		
+		if skipNext && strings.TrimSpace(line) == "" {
+			continue
+		}
+		
+		skipNext = false
+		lines = append(lines, line)
+	}
+
+	// Write the cleaned file back
+	outFile, err := os.Create(configFile)
+	if err != nil {
+		return
+	}
+	defer outFile.Close()
+
+	for _, line := range lines {
+		fmt.Fprintln(outFile, line)
+	}
 }
 
 func expandPath(path string) string {
@@ -802,12 +975,15 @@ USAGE:
   note [OPTIONS]
 
 OPTIONS:
-  --config                 Run setup/reconfigure
+
   -ls, -l [pattern]        List notes (optionally matching pattern)
   -s [term]                Full-text search in notes
   -rm [pattern]            Archive matching notes
   -a [pattern]             List/search all notes including archived
+
   --help, -h               Show this help message
+  --config                 Run setup/reconfigure
+  --autocomplete           Setup/update command line autocompletion
 
 EXAMPLES:
   note meeting             Creates meeting-20260108.md
@@ -821,6 +997,10 @@ EXAMPLES:
 CONFIGURATION:
   Settings are stored in ~/.note
   Use 'note --config' to reconfigure
+
+LICENSE:
+  This program is free software licensed under GPL-3.0.
+  See <https://www.gnu.org/licenses/> for details.
 
 For more information, see: https://github.com/bobby/note`)
 }

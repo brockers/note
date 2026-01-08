@@ -193,3 +193,8 @@ make clean
 - **No tags or categories**: Use your filesystem and grep
 - **No dependencies**: Single static binary
 - **No lock-in**: Your notes are just text files
+
+## LICENSE
+
+  This program is free software licensed under GPL-3.0.
+  See <https://www.gnu.org/licenses/> for details.
