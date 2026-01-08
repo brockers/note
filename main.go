@@ -299,17 +299,24 @@ func isCompletionAlreadySetup() bool {
 
 	switch shell {
 	case "bash":
-		// Check .bashrc or .bash_profile for note completion
-		bashFiles := []string{".bashrc", ".bash_profile", ".profile"}
-		for _, file := range bashFiles {
-			if checkFileForCompletionSource(filepath.Join(homeDir, file)) {
-				return true
+		// Check if ~/.note.bash exists and is sourced in shell config
+		bashCompletionFile := filepath.Join(homeDir, ".note.bash")
+		if _, err := os.Stat(bashCompletionFile); err == nil {
+			// Check .bashrc or .bash_profile for note completion
+			bashFiles := []string{".bashrc", ".bash_profile", ".profile"}
+			for _, file := range bashFiles {
+				if checkFileForCompletionSource(filepath.Join(homeDir, file)) {
+					return true
+				}
 			}
 		}
 	case "zsh":
-		// Check .zshrc for note completion
-		if checkFileForCompletionSource(filepath.Join(homeDir, ".zshrc")) {
-			return true
+		// Check if ~/.note.zsh exists and is sourced in .zshrc
+		zshCompletionFile := filepath.Join(homeDir, ".note.zsh")
+		if _, err := os.Stat(zshCompletionFile); err == nil {
+			if checkFileForCompletionSource(filepath.Join(homeDir, ".zshrc")) {
+				return true
+			}
 		}
 	case "fish":
 		// Check fish completion directory
@@ -333,7 +340,8 @@ func checkFileForCompletionSource(filePath string) bool {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if strings.Contains(line, "note") && (strings.Contains(line, "complete") || strings.Contains(line, "completion")) {
+		if strings.Contains(line, ".note.bash") || strings.Contains(line, ".note.zsh") || 
+		   (strings.Contains(line, "note") && (strings.Contains(line, "complete") || strings.Contains(line, "completion"))) {
 			return true
 		}
 	}
@@ -369,18 +377,49 @@ func setupBashCompletion() {
 		return
 	}
 
-	// Get the path to the completion script
-	executablePath, err := os.Executable()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting executable path: %v\n", err)
-		return
-	}
-	
-	completionScriptPath := filepath.Join(filepath.Dir(executablePath), "completions", "bash", "note")
-	
-	// Check if the completion script exists
-	if _, err := os.Stat(completionScriptPath); os.IsNotExist(err) {
-		fmt.Printf("Completion script not found at %s\n", completionScriptPath)
+	// Write the embedded completion script to ~/.note.bash
+	completionScriptPath := filepath.Join(homeDir, ".note.bash")
+	bashCompletionScript := `#!/bin/bash
+
+_note_complete() {
+    local cur="${COMP_WORDS[COMP_CWORD]}"
+    local prev="${COMP_WORDS[COMP_CWORD-1]}"
+    
+    # If we're on the first argument
+    if [[ ${COMP_CWORD} -eq 1 ]]; then
+        # Offer flags and note names
+        local flags="-ls -l -s -a -rm --config --help -h"
+        
+        # Get note names from the notes directory
+        if [[ -f ~/.note ]]; then
+            local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
+            if [[ -d "$notesdir" ]]; then
+                # Get all .md files and remove the .md extension for easier completion
+                local notes=$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)
+                COMPREPLY=($(compgen -W "$flags $notes" -- "${cur}"))
+            else
+                COMPREPLY=($(compgen -W "$flags" -- "${cur}"))
+            fi
+        else
+            COMPREPLY=($(compgen -W "$flags" -- "${cur}"))
+        fi
+    # If previous was -ls, -l, -a, or -rm, offer note names
+    elif [[ "$prev" == "-ls" || "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-rm" ]]; then
+        if [[ -f ~/.note ]]; then
+            local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
+            if [[ -d "$notesdir" ]]; then
+                local notes=$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)
+                COMPREPLY=($(compgen -W "$notes" -- "${cur}"))
+            fi
+        fi
+    fi
+}
+
+complete -F _note_complete note
+`
+
+	if err := os.WriteFile(completionScriptPath, []byte(bashCompletionScript), 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing completion script: %v\n", err)
 		return
 	}
 
@@ -401,6 +440,7 @@ func setupBashCompletion() {
 	}
 
 	fmt.Printf("✓ Bash completion setup complete!\n")
+	fmt.Printf("  Created completion script at %s\n", completionScriptPath)
 	fmt.Printf("  Added source line to %s\n", bashrcPath)
 	fmt.Printf("  Restart your shell or run: source %s\n", bashrcPath)
 }
@@ -412,18 +452,50 @@ func setupZshCompletion() {
 		return
 	}
 
-	// Get the path to the completion script  
-	executablePath, err := os.Executable()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting executable path: %v\n", err)
-		return
-	}
-	
-	completionScriptPath := filepath.Join(filepath.Dir(executablePath), "completions", "bash", "note")
-	
-	// Check if the completion script exists
-	if _, err := os.Stat(completionScriptPath); os.IsNotExist(err) {
-		fmt.Printf("Completion script not found at %s\n", completionScriptPath)
+	// Write the embedded completion script to ~/.note.zsh
+	completionScriptPath := filepath.Join(homeDir, ".note.zsh")
+	zshCompletionScript := `#!/bin/zsh
+
+_note_complete() {
+    local cur="${words[CURRENT]}"
+    local prev="${words[CURRENT-1]}"
+    
+    # If we're on the first argument
+    if [[ $CURRENT -eq 2 ]]; then
+        # Offer flags and note names
+        local flags=("-ls" "-l" "-s" "-a" "-rm" "--config" "--help" "-h")
+        
+        # Get note names from the notes directory
+        local notes=()
+        if [[ -f ~/.note ]]; then
+            local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
+            if [[ -d "$notesdir" ]]; then
+                # Get all .md files and remove the .md extension for easier completion
+                notes=(${(f)"$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)"})
+            fi
+        fi
+        
+        _alternative \
+            'flags:flags:compadd -a flags' \
+            'notes:notes:compadd -a notes'
+        
+    # If previous was -ls, -l, -a, or -rm, offer note names
+    elif [[ "$prev" == "-ls" || "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-rm" ]]; then
+        if [[ -f ~/.note ]]; then
+            local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
+            if [[ -d "$notesdir" ]]; then
+                local notes=(${(f)"$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)"})
+                compadd -a notes
+            fi
+        fi
+    fi
+}
+
+compdef _note_complete note
+`
+
+	if err := os.WriteFile(completionScriptPath, []byte(zshCompletionScript), 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing completion script: %v\n", err)
 		return
 	}
 
@@ -444,6 +516,7 @@ func setupZshCompletion() {
 	}
 
 	fmt.Printf("✓ Zsh completion setup complete!\n")
+	fmt.Printf("  Created completion script at %s\n", completionScriptPath)
 	fmt.Printf("  Added source line to %s\n", zshrcPath)
 	fmt.Printf("  Restart your shell or run: source %s\n", zshrcPath)
 }
