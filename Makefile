@@ -18,7 +18,7 @@ integration-test: build
 
 # Run completion tests
 completion-test: build
-	./test_completion.sh
+	./completion_test.sh
 
 # Run all tests
 test-all: test integration-test completion-test
