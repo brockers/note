@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -e
+# Don't use set -e because we want to continue even if a test fails
+# We'll handle errors explicitly in the test functions
 
 echo "=== Note CLI Integration Tests ==="
 
@@ -44,8 +45,8 @@ NOTE_CMD="./note"
 echo "Building note application..."
 go build -o note
 
-# Test 1: First run setup
-echo -e "vim\n$TEST_DIR/Notes\n" | $NOTE_CMD > /dev/null 2>&1
+# Test 1: First run setup (now includes autocomplete prompt)
+echo -e "vim\n$TEST_DIR/Notes\nn\n" | $NOTE_CMD > /dev/null 2>&1
 run_test "Initial setup creates config" "test -f $TEST_DIR/.note" ""
 
 # Test 2: Config file content
@@ -97,8 +98,8 @@ run_test "Pattern preserves non-matching" "test -f $TEST_DIR/Notes/keep-$TODAY.m
 touch "$TEST_DIR/Notes/note with spaces-$TODAY.md"
 run_test "Handles spaces in names" "$NOTE_CMD -ls | grep -q 'note with spaces'" ""
 
-# Test 13: Config modification
-echo -e "nano\n$TEST_DIR/NewNotes\n" | $NOTE_CMD --config > /dev/null 2>&1
+# Test 13: Config modification (now includes autocomplete prompt)
+echo -e "nano\n$TEST_DIR/NewNotes\nn\n" | $NOTE_CMD --config > /dev/null 2>&1
 run_test "Config updates editor" "grep -q 'editor=nano' $TEST_DIR/.note" ""
 
 # Cleanup

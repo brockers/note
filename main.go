@@ -421,8 +421,16 @@ _note_complete() {
                 local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
                 if [[ -d "$notesdir" ]]; then
                     # Get all .md files and remove the .md extension for easier completion
-                    local notes=$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)
-                    COMPREPLY=($(compgen -W "$notes" -- "${cur}"))
+                    local notes=$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort | tr '\n' ' ')
+                    # Use case-insensitive matching by converting both to lowercase
+                    local cur_lower=$(echo "$cur" | tr '[:upper:]' '[:lower:]')
+                    COMPREPLY=()
+                    for note in $notes; do
+                        local note_lower=$(echo "$note" | tr '[:upper:]' '[:lower:]')
+                        if [[ "$note_lower" == "$cur_lower"* ]]; then
+                            COMPREPLY+=("$note")
+                        fi
+                    done
                 fi
             fi
         fi
@@ -431,8 +439,16 @@ _note_complete() {
         if [[ -f ~/.note ]]; then
             local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
             if [[ -d "$notesdir" ]]; then
-                local notes=$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)
-                COMPREPLY=($(compgen -W "$notes" -- "${cur}"))
+                local notes=$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort | tr '\n' ' ')
+                # Use case-insensitive matching by converting both to lowercase
+                local cur_lower=$(echo "$cur" | tr '[:upper:]' '[:lower:]')
+                COMPREPLY=()
+                for note in $notes; do
+                    local note_lower=$(echo "$note" | tr '[:upper:]' '[:lower:]')
+                    if [[ "$note_lower" == "$cur_lower"* ]]; then
+                        COMPREPLY+=("$note")
+                    fi
+                done
             fi
         fi
     fi
@@ -496,7 +512,14 @@ _note_complete() {
                 local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
                 if [[ -d "$notesdir" ]]; then
                     # Get all .md files and remove the .md extension for easier completion
-                    notes=(${(f)"$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)"})
+                    local all_notes=(${(f)"$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)"})
+                    # Filter case-insensitively
+                    local cur_lower="${cur:l}"
+                    for note in $all_notes; do
+                        if [[ "${note:l}" == ${cur_lower}* ]]; then
+                            notes+=("$note")
+                        fi
+                    done
                 fi
             fi
             compadd -a notes
@@ -507,7 +530,15 @@ _note_complete() {
         if [[ -f ~/.note ]]; then
             local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
             if [[ -d "$notesdir" ]]; then
-                local notes=(${(f)"$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)"})
+                local all_notes=(${(f)"$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)"})
+                # Filter case-insensitively
+                local notes=()
+                local cur_lower="${cur:l}"
+                for note in $all_notes; do
+                    if [[ "${note:l}" == ${cur_lower}* ]]; then
+                        notes+=("$note")
+                    fi
+                done
                 compadd -a notes
             fi
         fi
@@ -840,8 +871,18 @@ func findMatchingNotes(dir, pattern string, includeSubdirs bool) []string {
 		}
 
 		// Match pattern (case-insensitive)
-		if pattern == "" || strings.Contains(strings.ToLower(info.Name()), strings.ToLower(pattern)) {
+		// Support both glob patterns and substring matching
+		if pattern == "" {
 			notes = append(notes, info.Name())
+		} else {
+			// First try glob pattern matching
+			matched, err := filepath.Match(strings.ToLower(pattern), strings.ToLower(info.Name()))
+			if err == nil && matched {
+				notes = append(notes, info.Name())
+			} else if strings.Contains(strings.ToLower(info.Name()), strings.ToLower(pattern)) {
+				// Fall back to substring matching if not a valid glob or no match
+				notes = append(notes, info.Name())
+			}
 		}
 
 		return nil

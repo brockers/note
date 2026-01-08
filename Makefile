@@ -16,8 +16,12 @@ test:
 integration-test: build
 	./integration_test.sh
 
+# Run completion tests
+completion-test: build
+	./test_completion.sh
+
 # Run all tests
-test-all: test integration-test
+test-all: test integration-test completion-test
 
 # Clean build artifacts
 clean:

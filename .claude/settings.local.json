@@ -14,7 +14,13 @@
       "Bash(git commit:*)",
       "Bash(source:*)",
       "Bash(complete:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(notesdir=\"/home/bobby/Dropbox/Reference/Notes\")",
+      "Bash(find:*)",
+      "Bash(./test_completion.sh:*)",
+      "Bash(bash:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }
