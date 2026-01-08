@@ -88,7 +88,12 @@ func highlightTerm(text, term string) string {
 }
 
 func main() {
-	config := loadOrCreateConfig()
+	config, firstTimeSetup := loadOrCreateConfig()
+
+	// If first-time setup was just completed, exit gracefully
+	if firstTimeSetup {
+		return
+	}
 
 	// Parse flags
 	var (
@@ -171,7 +176,7 @@ func main() {
 	openOrCreateNote(config, noteName)
 }
 
-func loadOrCreateConfig() Config {
+func loadOrCreateConfig() (Config, bool) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting home directory: %v\n", err)
@@ -183,7 +188,7 @@ func loadOrCreateConfig() Config {
 	// Check if config exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		// First run, create config
-		return runSetup()
+		return runSetup(), true
 	}
 
 	// Load existing config
@@ -215,10 +220,10 @@ func loadOrCreateConfig() Config {
 
 	if config.Editor == "" || config.NotesDir == "" {
 		fmt.Println("Invalid config file. Running setup...")
-		return runSetup()
+		return runSetup(), false
 	}
 
-	return config
+	return config, false
 }
 
 func runSetup() Config {
