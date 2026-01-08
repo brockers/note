@@ -11,7 +11,9 @@
       "Bash(./note:*)",
       "Bash(make test:*)",
       "Bash(make:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(source:*)",
+      "Bash(complete:*)"
     ],
     "deny": []
   }

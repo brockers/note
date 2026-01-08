@@ -387,21 +387,20 @@ _note_complete() {
     
     # If we're on the first argument
     if [[ ${COMP_CWORD} -eq 1 ]]; then
-        # Offer flags and note names
-        local flags="-ls -l -s -a -rm --config --help -h"
-        
-        # Get note names from the notes directory
-        if [[ -f ~/.note ]]; then
-            local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
-            if [[ -d "$notesdir" ]]; then
-                # Get all .md files and remove the .md extension for easier completion
-                local notes=$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)
-                COMPREPLY=($(compgen -W "$flags $notes" -- "${cur}"))
-            else
-                COMPREPLY=($(compgen -W "$flags" -- "${cur}"))
-            fi
-        else
+        # If user starts typing a dash, offer flags
+        if [[ "$cur" == -* ]]; then
+            local flags="-ls -l -s -a -rm --config --help -h"
             COMPREPLY=($(compgen -W "$flags" -- "${cur}"))
+        else
+            # Otherwise, prioritize note names
+            if [[ -f ~/.note ]]; then
+                local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
+                if [[ -d "$notesdir" ]]; then
+                    # Get all .md files and remove the .md extension for easier completion
+                    local notes=$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)
+                    COMPREPLY=($(compgen -W "$notes" -- "${cur}"))
+                fi
+            fi
         fi
     # If previous was -ls, -l, -a, or -rm, offer note names
     elif [[ "$prev" == "-ls" || "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-rm" ]]; then
@@ -462,22 +461,22 @@ _note_complete() {
     
     # If we're on the first argument
     if [[ $CURRENT -eq 2 ]]; then
-        # Offer flags and note names
-        local flags=("-ls" "-l" "-s" "-a" "-rm" "--config" "--help" "-h")
-        
-        # Get note names from the notes directory
-        local notes=()
-        if [[ -f ~/.note ]]; then
-            local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
-            if [[ -d "$notesdir" ]]; then
-                # Get all .md files and remove the .md extension for easier completion
-                notes=(${(f)"$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)"})
+        # If user starts typing a dash, offer flags
+        if [[ "$cur" == -* ]]; then
+            local flags=("-ls" "-l" "-s" "-a" "-rm" "--config" "--help" "-h")
+            compadd -a flags
+        else
+            # Otherwise, prioritize note names
+            local notes=()
+            if [[ -f ~/.note ]]; then
+                local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
+                if [[ -d "$notesdir" ]]; then
+                    # Get all .md files and remove the .md extension for easier completion
+                    notes=(${(f)"$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)"})
+                fi
             fi
+            compadd -a notes
         fi
-        
-        _alternative \
-            'flags:flags:compadd -a flags' \
-            'notes:notes:compadd -a notes'
         
     # If previous was -ls, -l, -a, or -rm, offer note names
     elif [[ "$prev" == "-ls" || "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-rm" ]]; then
