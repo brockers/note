@@ -170,6 +170,31 @@ run_test "Case insensitive multiple matches don't panic" "$NOTE_CMD -l LIFE >/de
 # Test that the results are actually returned (not just no panic)
 run_test "Multiple matches return correct results" "$NOTE_CMD -l life | grep -q 'Life-101-Identifing'" ""
 
+# Test 24: Alias setup functionality (mock test - don't actually modify shell configs)
+echo "editor=vim" > "$TEST_DIR/.note" && echo "notesdir=$TEST_DIR/Notes" >> "$TEST_DIR/.note"
+
+# Create a mock shell environment to test alias detection
+mkdir -p "$TEST_DIR/.config/fish"
+echo "# Existing fish config" > "$TEST_DIR/.config/fish/config.fish"
+echo "# Some bash config" > "$TEST_DIR/.bashrc"
+echo "# Some zsh config" > "$TEST_DIR/.zshrc"
+
+# Test that alias detection returns false when no aliases exist
+export SHELL="/bin/bash"
+run_test "Alias detection returns false when no aliases exist" "! grep -q 'alias nls=' $TEST_DIR/.bashrc" ""
+
+# Test adding aliases to bash config (simulate what the setup would do)
+echo -e "\n# note command aliases\nalias nls='./note -l'\nalias nrm='./note -rm'" >> "$TEST_DIR/.bashrc"
+run_test "Bash aliases can be added to bashrc" "grep -q 'alias nls=' $TEST_DIR/.bashrc && grep -q 'alias nrm=' $TEST_DIR/.bashrc" ""
+
+# Test adding aliases to zsh config
+echo -e "\n# note command aliases\nalias nls='./note -l'\nalias nrm='./note -rm'" >> "$TEST_DIR/.zshrc"
+run_test "Zsh aliases can be added to zshrc" "grep -q 'alias nls=' $TEST_DIR/.zshrc && grep -q 'alias nrm=' $TEST_DIR/.zshrc" ""
+
+# Test adding aliases to fish config (fish uses different syntax)
+echo -e "\n# note command aliases\nalias nls './note -l'\nalias nrm './note -rm'" >> "$TEST_DIR/.config/fish/config.fish"
+run_test "Fish aliases can be added to config.fish" "grep -q 'alias nls ' $TEST_DIR/.config/fish/config.fish && grep -q 'alias nrm ' $TEST_DIR/.config/fish/config.fish" ""
+
 # Cleanup
 rm -rf "$TEST_DIR"
 

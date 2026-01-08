@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -317,4 +318,78 @@ func TestIsOutputToTerminal(t *testing.T) {
 	
 	// In CI/test environments, this is typically false
 	// We'll just verify it runs without error
+}
+
+func TestAreAliasesAlreadySetup(t *testing.T) {
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "note-alias-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+	
+	// Save original HOME
+	originalHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", originalHome)
+	
+	// Set temporary HOME
+	os.Setenv("HOME", tempDir)
+	
+	// Test with no shell config files
+	result := areAliasesAlreadySetup()
+	if result {
+		t.Error("Should return false when no config files exist")
+	}
+	
+	// Test with bash config file without aliases
+	bashrcPath := filepath.Join(tempDir, ".bashrc")
+	if err := os.WriteFile(bashrcPath, []byte("# Some other config\nexport PATH=$PATH:/usr/bin\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	
+	// Mock shell detection to return bash
+	originalShell := os.Getenv("SHELL")
+	os.Setenv("SHELL", "/bin/bash")
+	defer os.Setenv("SHELL", originalShell)
+	
+	result = areAliasesAlreadySetup()
+	if result {
+		t.Error("Should return false when aliases don't exist in bashrc")
+	}
+	
+	// Test with bash config file with aliases
+	aliasContent := "# Some other config\nexport PATH=$PATH:/usr/bin\n# note command aliases\nalias nls='/usr/bin/note -l'\nalias nrm='/usr/bin/note -rm'\n"
+	if err := os.WriteFile(bashrcPath, []byte(aliasContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+	
+	result = areAliasesAlreadySetup()
+	if !result {
+		t.Error("Should return true when aliases exist in bashrc")
+	}
+}
+
+func TestSetupAliasesPath(t *testing.T) {
+	// Test path detection logic used in alias setup
+	// This tests the os.Executable and exec.LookPath fallback
+	
+	// Test executable path detection
+	execPath, err := os.Executable()
+	if err != nil {
+		t.Logf("os.Executable() failed: %v, testing fallback", err)
+		
+		// Test PATH lookup fallback
+		notePath, err := exec.LookPath("note")
+		if err != nil {
+			t.Skip("note command not found in PATH, skipping path test")
+		}
+		
+		if notePath == "" {
+			t.Error("exec.LookPath should return non-empty path")
+		}
+	} else {
+		if execPath == "" {
+			t.Error("os.Executable should return non-empty path")
+		}
+	}
 }

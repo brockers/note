@@ -315,6 +315,9 @@ func runSetup() Config {
 	// Ask about command line completion
 	setupCompletion(reader)
 
+	// Ask about shell aliases
+	setupAliases(reader)
+
 	// Save config
 	saveConfig(config)
 	return config
@@ -682,6 +685,194 @@ complete -c note -n '__fish_is_first_token' -a '(if test -f ~/.note; set notesdi
 	fmt.Printf("✓ Fish completion setup complete!\n")
 	fmt.Printf("  Created completion file at %s\n", noteCompletionFile)
 	fmt.Printf("  Restart your shell to activate completions\n")
+}
+
+func setupAliases(reader *bufio.Reader) {
+	// Check if aliases are already set up
+	if areAliasesAlreadySetup() {
+		return
+	}
+
+	fmt.Println()
+	fmt.Print("Would you like to set up shell aliases (nls -> note -l, nrm -> note -rm)? (y/N): ")
+	response, _ := reader.ReadString('\n')
+	response = strings.ToLower(strings.TrimSpace(response))
+	
+	if response != "y" && response != "yes" {
+		fmt.Println("Skipping alias setup. You can run 'note --config' later to set them up.")
+		return
+	}
+
+	shell := detectShell()
+	if shell == "" {
+		fmt.Println("Could not detect shell type. Skipping alias setup.")
+		return
+	}
+
+	switch shell {
+	case "bash":
+		setupBashAliases()
+	case "zsh":
+		setupZshAliases()
+	case "fish":
+		setupFishAliases()
+	default:
+		fmt.Printf("Shell '%s' not supported for aliases. Supported shells: bash, zsh, fish\n", shell)
+	}
+}
+
+func areAliasesAlreadySetup() bool {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return false
+	}
+
+	shell := detectShell()
+	switch shell {
+	case "bash":
+		bashrc := filepath.Join(homeDir, ".bashrc")
+		if content, err := os.ReadFile(bashrc); err == nil {
+			return strings.Contains(string(content), "alias nls=") && strings.Contains(string(content), "alias nrm=")
+		}
+	case "zsh":
+		zshrc := filepath.Join(homeDir, ".zshrc")
+		if content, err := os.ReadFile(zshrc); err == nil {
+			return strings.Contains(string(content), "alias nls=") && strings.Contains(string(content), "alias nrm=")
+		}
+	case "fish":
+		fishConfigDir := filepath.Join(homeDir, ".config", "fish", "config.fish")
+		if content, err := os.ReadFile(fishConfigDir); err == nil {
+			return strings.Contains(string(content), "alias nls ") && strings.Contains(string(content), "alias nrm ")
+		}
+	}
+	return false
+}
+
+func setupBashAliases() {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting home directory: %v\n", err)
+		return
+	}
+
+	bashrcPath := filepath.Join(homeDir, ".bashrc")
+	
+	// Get the full path to the note binary
+	notePath, err := os.Executable()
+	if err != nil {
+		// Fallback to checking PATH
+		notePath, err = exec.LookPath("note")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not determine note command path: %v\n", err)
+			return
+		}
+	}
+
+	aliasLines := fmt.Sprintf("\n# note command aliases\nalias nls='%s -l'\nalias nrm='%s -rm'\n", notePath, notePath)
+
+	// Append to .bashrc
+	file, err := os.OpenFile(bashrcPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening .bashrc: %v\n", err)
+		return
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString(aliasLines); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing aliases to .bashrc: %v\n", err)
+		return
+	}
+
+	fmt.Printf("✓ Bash aliases setup complete!\n")
+	fmt.Printf("  Added 'nls' and 'nrm' aliases to %s\n", bashrcPath)
+	fmt.Printf("  Run 'source ~/.bashrc' or restart your shell to activate aliases\n")
+}
+
+func setupZshAliases() {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting home directory: %v\n", err)
+		return
+	}
+
+	zshrcPath := filepath.Join(homeDir, ".zshrc")
+	
+	// Get the full path to the note binary
+	notePath, err := os.Executable()
+	if err != nil {
+		// Fallback to checking PATH
+		notePath, err = exec.LookPath("note")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not determine note command path: %v\n", err)
+			return
+		}
+	}
+
+	aliasLines := fmt.Sprintf("\n# note command aliases\nalias nls='%s -l'\nalias nrm='%s -rm'\n", notePath, notePath)
+
+	// Append to .zshrc
+	file, err := os.OpenFile(zshrcPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening .zshrc: %v\n", err)
+		return
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString(aliasLines); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing aliases to .zshrc: %v\n", err)
+		return
+	}
+
+	fmt.Printf("✓ Zsh aliases setup complete!\n")
+	fmt.Printf("  Added 'nls' and 'nrm' aliases to %s\n", zshrcPath)
+	fmt.Printf("  Run 'source ~/.zshrc' or restart your shell to activate aliases\n")
+}
+
+func setupFishAliases() {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting home directory: %v\n", err)
+		return
+	}
+
+	// Create fish config directory if it doesn't exist
+	fishConfigDir := filepath.Join(homeDir, ".config", "fish")
+	if err := os.MkdirAll(fishConfigDir, 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating fish config directory: %v\n", err)
+		return
+	}
+
+	fishConfigPath := filepath.Join(fishConfigDir, "config.fish")
+	
+	// Get the full path to the note binary
+	notePath, err := os.Executable()
+	if err != nil {
+		// Fallback to checking PATH
+		notePath, err = exec.LookPath("note")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not determine note command path: %v\n", err)
+			return
+		}
+	}
+
+	aliasLines := fmt.Sprintf("\n# note command aliases\nalias nls '%s -l'\nalias nrm '%s -rm'\n", notePath, notePath)
+
+	// Append to config.fish
+	file, err := os.OpenFile(fishConfigPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening fish config: %v\n", err)
+		return
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString(aliasLines); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing aliases to fish config: %v\n", err)
+		return
+	}
+
+	fmt.Printf("✓ Fish aliases setup complete!\n")
+	fmt.Printf("  Added 'nls' and 'nrm' aliases to %s\n", fishConfigPath)
+	fmt.Printf("  Restart your shell to activate aliases\n")
 }
 
 func runAutocompleteSetup() {
