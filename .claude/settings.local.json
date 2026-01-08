@@ -10,7 +10,8 @@
       "Bash(./note -s \"TODO\")",
       "Bash(./note:*)",
       "Bash(make test:*)",
-      "Bash(make:*)"
+      "Bash(make:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }
