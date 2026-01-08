@@ -153,6 +153,23 @@ else
     ((TESTS_PASSED++))
 fi
 
+# Test 23: Highlighting panic regression - multiple term matches
+echo "editor=vim" > "$TEST_DIR/.note" && echo "notesdir=$TEST_DIR/Notes" >> "$TEST_DIR/.note"
+# Create files with patterns that previously caused slice bounds panic
+echo "Test content about life and philosophy" > "$TEST_DIR/Notes/Life-101-Identifing-a-Vision-for-your-Life-$TODAY.md"
+echo "Notes about life" > "$TEST_DIR/Notes/test-life-and-life-again-$TODAY.md" 
+echo "Abstract concepts" > "$TEST_DIR/Notes/abc-abc-abc-$TODAY.md"
+echo "Single char repeated" > "$TEST_DIR/Notes/a-a-a-a-a-$TODAY.md"
+
+# Test that these don't cause panics (the command should exit successfully)
+run_test "Multiple life matches don't panic" "$NOTE_CMD -l life >/dev/null 2>&1" ""
+run_test "Multiple abc matches don't panic" "$NOTE_CMD -l abc >/dev/null 2>&1" ""
+run_test "Multiple single char matches don't panic" "$NOTE_CMD -l a >/dev/null 2>&1" ""
+run_test "Case insensitive multiple matches don't panic" "$NOTE_CMD -l LIFE >/dev/null 2>&1" ""
+
+# Test that the results are actually returned (not just no panic)
+run_test "Multiple matches return correct results" "$NOTE_CMD -l life | grep -q 'Life-101-Identifing'" ""
+
 # Cleanup
 rm -rf "$TEST_DIR"
 

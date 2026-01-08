@@ -70,8 +70,14 @@ func highlightTerm(text, term string) string {
 		}
 		
 		actualPos := startPos + pos
+		
+		// Bounds checking to prevent panic
+		if actualPos+len(term) > len(result) {
+			break
+		}
+		
 		// Preserve original case in the highlight
-		originalTerm := text[actualPos : actualPos+len(term)]
+		originalTerm := result[actualPos : actualPos+len(term)]
 		highlighted := ColorRed + originalTerm + ColorReset
 		
 		result = result[:actualPos] + highlighted + result[actualPos+len(term):]

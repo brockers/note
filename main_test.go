@@ -266,6 +266,44 @@ func TestHighlightTerm(t *testing.T) {
 	}
 }
 
+func TestHighlightTermPanicRegression(t *testing.T) {
+	// Test cases that previously caused slice bounds panic
+	// These test the specific issue where multiple occurrences of a term
+	// caused the highlighting algorithm to go out of bounds
+	problematicCases := []struct {
+		text string
+		term string
+	}{
+		// This case caused the original panic: second "life" would go out of bounds
+		{"Life-101-Identifing-a-Vision-for-your-Life.md", "life"},
+		// Additional edge cases
+		{"test-life-and-life-again.txt", "life"},
+		{"abc-abc-abc.md", "abc"},
+		{"short", "short"},  // Term same length as text
+		{"ab", "abc"},       // Term longer than text
+		{"a-a-a-a-a.txt", "a"}, // Many small matches
+	}
+	
+	for _, test := range problematicCases {
+		// The main test is that this doesn't panic
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("highlightTerm(%q, %q) panicked: %v", test.text, test.term, r)
+				}
+			}()
+			
+			result := highlightTerm(test.text, test.term)
+			
+			// Basic sanity check: result should not be shorter than original text
+			// (unless we couldn't do highlighting due to test environment)
+			if len(result) < len(test.text) {
+				t.Errorf("highlightTerm(%q, %q) result %q is shorter than input", test.text, test.term, result)
+			}
+		}()
+	}
+}
+
 func TestIsOutputToTerminal(t *testing.T) {
 	// Test terminal detection
 	// In test environment, this should typically return false
