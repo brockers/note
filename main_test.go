@@ -358,7 +358,7 @@ func TestAreAliasesAlreadySetup(t *testing.T) {
 	}
 	
 	// Test with bash config file with aliases
-	aliasContent := "# Some other config\nexport PATH=$PATH:/usr/bin\n# note command aliases\nalias nls='/usr/bin/note -l'\nalias nrm='/usr/bin/note -rm'\n"
+	aliasContent := "# Some other config\nexport PATH=$PATH:/usr/bin\n# note command aliases\nalias n='/usr/bin/note'\nalias nls='/usr/bin/note -l'\nalias nrm='/usr/bin/note -rm'\n"
 	if err := os.WriteFile(bashrcPath, []byte(aliasContent), 0644); err != nil {
 		t.Fatal(err)
 	}

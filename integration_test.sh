@@ -184,16 +184,16 @@ export SHELL="/bin/bash"
 run_test "Alias detection returns false when no aliases exist" "! grep -q 'alias nls=' $TEST_DIR/.bashrc" ""
 
 # Test adding aliases to bash config (simulate what the setup would do)
-echo -e "\n# note command aliases\nalias nls='./note -l'\nalias nrm='./note -rm'" >> "$TEST_DIR/.bashrc"
-run_test "Bash aliases can be added to bashrc" "grep -q 'alias nls=' $TEST_DIR/.bashrc && grep -q 'alias nrm=' $TEST_DIR/.bashrc" ""
+echo -e "\n# note command aliases\nalias n='./note'\nalias nls='./note -l'\nalias nrm='./note -rm'" >> "$TEST_DIR/.bashrc"
+run_test "Bash aliases can be added to bashrc" "grep -q 'alias n=' $TEST_DIR/.bashrc && grep -q 'alias nls=' $TEST_DIR/.bashrc && grep -q 'alias nrm=' $TEST_DIR/.bashrc" ""
 
 # Test adding aliases to zsh config
-echo -e "\n# note command aliases\nalias nls='./note -l'\nalias nrm='./note -rm'" >> "$TEST_DIR/.zshrc"
-run_test "Zsh aliases can be added to zshrc" "grep -q 'alias nls=' $TEST_DIR/.zshrc && grep -q 'alias nrm=' $TEST_DIR/.zshrc" ""
+echo -e "\n# note command aliases\nalias n='./note'\nalias nls='./note -l'\nalias nrm='./note -rm'" >> "$TEST_DIR/.zshrc"
+run_test "Zsh aliases can be added to zshrc" "grep -q 'alias n=' $TEST_DIR/.zshrc && grep -q 'alias nls=' $TEST_DIR/.zshrc && grep -q 'alias nrm=' $TEST_DIR/.zshrc" ""
 
 # Test adding aliases to fish config (fish uses different syntax)
-echo -e "\n# note command aliases\nalias nls './note -l'\nalias nrm './note -rm'" >> "$TEST_DIR/.config/fish/config.fish"
-run_test "Fish aliases can be added to config.fish" "grep -q 'alias nls ' $TEST_DIR/.config/fish/config.fish && grep -q 'alias nrm ' $TEST_DIR/.config/fish/config.fish" ""
+echo -e "\n# note command aliases\nalias n './note'\nalias nls './note -l'\nalias nrm './note -rm'" >> "$TEST_DIR/.config/fish/config.fish"
+run_test "Fish aliases can be added to config.fish" "grep -q 'alias n ' $TEST_DIR/.config/fish/config.fish && grep -q 'alias nls ' $TEST_DIR/.config/fish/config.fish && grep -q 'alias nrm ' $TEST_DIR/.config/fish/config.fish" ""
 
 # Cleanup
 rm -rf "$TEST_DIR"

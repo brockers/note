@@ -694,7 +694,7 @@ func setupAliases(reader *bufio.Reader) {
 	}
 
 	fmt.Println()
-	fmt.Print("Would you like to set up shell aliases (nls -> note -l, nrm -> note -rm)? (y/N): ")
+	fmt.Print("Would you like to set up shell aliases (n -> note, nls -> note -l, nrm -> note -rm)? (y/N): ")
 	response, _ := reader.ReadString('\n')
 	response = strings.ToLower(strings.TrimSpace(response))
 	
@@ -732,17 +732,20 @@ func areAliasesAlreadySetup() bool {
 	case "bash":
 		bashrc := filepath.Join(homeDir, ".bashrc")
 		if content, err := os.ReadFile(bashrc); err == nil {
-			return strings.Contains(string(content), "alias nls=") && strings.Contains(string(content), "alias nrm=")
+			contentStr := string(content)
+			return strings.Contains(contentStr, "alias n=") && strings.Contains(contentStr, "alias nls=") && strings.Contains(contentStr, "alias nrm=")
 		}
 	case "zsh":
 		zshrc := filepath.Join(homeDir, ".zshrc")
 		if content, err := os.ReadFile(zshrc); err == nil {
-			return strings.Contains(string(content), "alias nls=") && strings.Contains(string(content), "alias nrm=")
+			contentStr := string(content)
+			return strings.Contains(contentStr, "alias n=") && strings.Contains(contentStr, "alias nls=") && strings.Contains(contentStr, "alias nrm=")
 		}
 	case "fish":
 		fishConfigDir := filepath.Join(homeDir, ".config", "fish", "config.fish")
 		if content, err := os.ReadFile(fishConfigDir); err == nil {
-			return strings.Contains(string(content), "alias nls ") && strings.Contains(string(content), "alias nrm ")
+			contentStr := string(content)
+			return strings.Contains(contentStr, "alias n ") && strings.Contains(contentStr, "alias nls ") && strings.Contains(contentStr, "alias nrm ")
 		}
 	}
 	return false
@@ -768,7 +771,7 @@ func setupBashAliases() {
 		}
 	}
 
-	aliasLines := fmt.Sprintf("\n# note command aliases\nalias nls='%s -l'\nalias nrm='%s -rm'\n", notePath, notePath)
+	aliasLines := fmt.Sprintf("\n# note command aliases\nalias n='%s'\nalias nls='%s -l'\nalias nrm='%s -rm'\n", notePath, notePath, notePath)
 
 	// Append to .bashrc
 	file, err := os.OpenFile(bashrcPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
@@ -784,7 +787,7 @@ func setupBashAliases() {
 	}
 
 	fmt.Printf("✓ Bash aliases setup complete!\n")
-	fmt.Printf("  Added 'nls' and 'nrm' aliases to %s\n", bashrcPath)
+	fmt.Printf("  Added 'n', 'nls', and 'nrm' aliases to %s\n", bashrcPath)
 	fmt.Printf("  Run 'source ~/.bashrc' or restart your shell to activate aliases\n")
 }
 
@@ -808,7 +811,7 @@ func setupZshAliases() {
 		}
 	}
 
-	aliasLines := fmt.Sprintf("\n# note command aliases\nalias nls='%s -l'\nalias nrm='%s -rm'\n", notePath, notePath)
+	aliasLines := fmt.Sprintf("\n# note command aliases\nalias n='%s'\nalias nls='%s -l'\nalias nrm='%s -rm'\n", notePath, notePath, notePath)
 
 	// Append to .zshrc
 	file, err := os.OpenFile(zshrcPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
@@ -824,7 +827,7 @@ func setupZshAliases() {
 	}
 
 	fmt.Printf("✓ Zsh aliases setup complete!\n")
-	fmt.Printf("  Added 'nls' and 'nrm' aliases to %s\n", zshrcPath)
+	fmt.Printf("  Added 'n', 'nls', and 'nrm' aliases to %s\n", zshrcPath)
 	fmt.Printf("  Run 'source ~/.zshrc' or restart your shell to activate aliases\n")
 }
 
@@ -855,7 +858,7 @@ func setupFishAliases() {
 		}
 	}
 
-	aliasLines := fmt.Sprintf("\n# note command aliases\nalias nls '%s -l'\nalias nrm '%s -rm'\n", notePath, notePath)
+	aliasLines := fmt.Sprintf("\n# note command aliases\nalias n '%s'\nalias nls '%s -l'\nalias nrm '%s -rm'\n", notePath, notePath, notePath)
 
 	// Append to config.fish
 	file, err := os.OpenFile(fishConfigPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
@@ -871,7 +874,7 @@ func setupFishAliases() {
 	}
 
 	fmt.Printf("✓ Fish aliases setup complete!\n")
-	fmt.Printf("  Added 'nls' and 'nrm' aliases to %s\n", fishConfigPath)
+	fmt.Printf("  Added 'n', 'nls', and 'nrm' aliases to %s\n", fishConfigPath)
 	fmt.Printf("  Restart your shell to activate aliases\n")
 }
 
