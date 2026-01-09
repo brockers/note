@@ -36,7 +36,11 @@
       "Bash(HOME=\"$(pwd)\" ./note -l sample)",
       "Bash(HOME=\"$(pwd)\" ./note -l)",
       "Bash(HOME=\"$(pwd)\" ./note -l)",
-      "Bash(echo $HOME)"
+      "Bash(echo $HOME)",
+      "Bash(./setup_integration_test.sh:*)",
+      "Bash(HOME=/tmp/test-note-setup ./note:*)",
+      "Bash(HOME=/tmp/test-note-setup timeout 1 ./note)",
+      "Bash(true)"
     ],
     "deny": []
   }

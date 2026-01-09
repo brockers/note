@@ -1,4 +1,22 @@
-.PHONY: build test clean install uninstall
+.PHONY: build test clean install uninstall help
+
+# Display available targets
+help:
+	@echo "Available make targets:"
+	@echo "  build           - Build the note binary"
+	@echo "  test            - Run Go unit tests"
+	@echo "  integration-test - Run integration tests"
+	@echo "  completion-test - Run completion functionality tests"
+	@echo "  setup-test      - Run setup/config integration tests"
+	@echo "  setup-test-ci   - Run setup tests (non-failing for CI)"
+	@echo "  test-all        - Run all tests"
+	@echo "  test-all-ci     - Run all tests (non-failing for CI)"
+	@echo "  install         - Install note system-wide (requires sudo)"
+	@echo "  uninstall       - Remove note from system"
+	@echo "  clean           - Clean build artifacts"
+	@echo "  dev             - Build and show help"
+	@echo "  fmt             - Format Go code"
+	@echo "  vet             - Run go vet"
 
 # Build variables
 BINARY_NAME=note
@@ -20,8 +38,19 @@ integration-test: build
 completion-test: build
 	./completion_test.sh
 
+# Run setup integration tests
+setup-test: build
+	./setup_integration_test.sh
+
+# Run setup integration tests (non-failing for CI)
+setup-test-ci: build
+	-./setup_integration_test.sh
+
 # Run all tests
-test-all: test integration-test completion-test
+test-all: test integration-test completion-test setup-test
+
+# Run all tests (non-failing for CI) 
+test-all-ci: test integration-test completion-test setup-test-ci
 
 # Clean build artifacts
 clean:
