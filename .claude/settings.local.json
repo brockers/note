@@ -45,7 +45,10 @@
       "Bash(timeout 10 make integration-test)",
       "Bash(timeout 10 make completion-test)",
       "Bash(timeout:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(HOME=/tmp/test-list-bug ./note -l bison:*)",
+      "Bash(HOME=/tmp/test-list-bug ./note -a bison:*)",
+      "Bash(HOME:*)"
     ],
     "deny": []
   }

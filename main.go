@@ -307,7 +307,7 @@ func runSetup() Config {
 	}
 
 	// Create Archive directory
-	archiveDir := filepath.Join(config.NotesDir, "Archive")
+	archiveDir := getArchiveDir(config.NotesDir)
 	if err := os.MkdirAll(archiveDir, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating archive directory: %v\n", err)
 		os.Exit(1)
@@ -1104,20 +1104,40 @@ func openInEditor(editor, filepath string) {
 	}
 }
 
+// getArchiveDir returns the path to the archive directory, checking for both "Archive" and "archive"
+func getArchiveDir(notesDir string) string {
+	// Check for "Archive" first (preferred)
+	archiveDir := filepath.Join(notesDir, "Archive")
+	if _, err := os.Stat(archiveDir); err == nil {
+		return archiveDir
+	}
+	
+	// Check for "archive" (lowercase)
+	archiveDir = filepath.Join(notesDir, "archive")
+	if _, err := os.Stat(archiveDir); err == nil {
+		return archiveDir
+	}
+	
+	// Default to "Archive" if neither exists (for new creation)
+	return filepath.Join(notesDir, "Archive")
+}
+
 func listNotes(config Config, pattern string, includeArchived bool) {
 	dirs := []string{config.NotesDir}
+	var archiveDirName string
 	if includeArchived {
-		archiveDir := filepath.Join(config.NotesDir, "Archive")
+		archiveDir := getArchiveDir(config.NotesDir)
 		dirs = append(dirs, archiveDir)
+		archiveDirName = filepath.Base(archiveDir)
 	}
 
 	var allNotes []string
 	for _, dir := range dirs {
-		notes := findMatchingNotes(dir, pattern, true)
+		notes := findMatchingNotes(dir, pattern, false)
 		if includeArchived && dir != config.NotesDir {
 			// Prefix archived notes for clarity
 			for i, note := range notes {
-				notes[i] = "Archive/" + note
+				notes[i] = archiveDirName + "/" + note
 			}
 		}
 		allNotes = append(allNotes, notes...)
@@ -1185,7 +1205,7 @@ func findMatchingNotes(dir, pattern string, includeSubdirs bool) []string {
 func searchNotes(config Config, searchTerm string, includeArchived bool) {
 	dirs := []string{config.NotesDir}
 	if includeArchived {
-		archiveDir := filepath.Join(config.NotesDir, "Archive")
+		archiveDir := getArchiveDir(config.NotesDir)
 		dirs = append(dirs, archiveDir)
 	}
 
@@ -1257,7 +1277,7 @@ func archiveNotes(config Config, pattern string) {
 		return
 	}
 
-	archiveDir := filepath.Join(config.NotesDir, "Archive")
+	archiveDir := getArchiveDir(config.NotesDir)
 	if err := os.MkdirAll(archiveDir, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating archive directory: %v\n", err)
 		os.Exit(1)
