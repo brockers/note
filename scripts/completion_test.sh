@@ -59,7 +59,7 @@ _note_complete_test() {
     if [[ ${COMP_CWORD} -eq 1 ]]; then
         # If user starts typing a dash, offer flags
         if [[ "$cur" == -* ]]; then
-            local flags="-ls -l -s -a -rm --config --autocomplete --help -h"
+            local flags="-l -s -a -d --config --autocomplete --alias --help -h"
             COMPREPLY=($(compgen -W "$flags" -- "${cur}"))
         else
             # Otherwise, prioritize note names
@@ -80,8 +80,8 @@ _note_complete_test() {
                 fi
             fi
         fi
-    # If previous was -ls, -l, -a, or -rm, offer note names
-    elif [[ "$prev" == "-ls" || "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-rm" ]]; then
+    # If previous was -l, -a, or -d, offer note names
+    elif [[ "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-d" ]]; then
         if [[ -f TEST_CONFIG_PATH ]]; then
             local notesdir=$(grep "^notesdir=" TEST_CONFIG_PATH | cut -d= -f2 | sed "s|~|$HOME|")
             if [[ -d "$notesdir" ]]; then
@@ -194,20 +194,52 @@ run_test "Non-matching 'XYZ' should return no results" "XYZ" 0 ""
 run_test "Empty input should return all notes" "" 10 ""
 
 # Test flag completion
-run_test "Flag '-l' should match -l and -ls" "-l" 2 "-l"
+run_test "Flag '-l' should match -l flag" "-l" 1 "-l"
 run_test "Flag '--h' should match --help" "--h" 1 "--help"
-run_test "Flag '--a' should match --autocomplete" "--a" 1 "--autocomplete"
+run_test "Flag '--a' should match --autocomplete and --alias" "--a" 2 "--a"
 
 # Test completion after flags
-export COMP_WORDS=("note" "-ls" "Life")
+export COMP_WORDS=("note" "-l" "Life")
 export COMP_CWORD=2
 COMPREPLY=()
 _note_complete_test
 if [[ ${#COMPREPLY[@]} -eq 3 ]]; then
-    echo -e "${GREEN}✓${NC} Completion after -ls flag works (found ${#COMPREPLY[@]} matches)"
+    echo -e "${GREEN}✓${NC} Completion after -l flag works (found ${#COMPREPLY[@]} matches)"
     ((TESTS_PASSED++))
 else
-    echo -e "${RED}✗${NC} Completion after -ls flag failed"
+    echo -e "${RED}✗${NC} Completion after -l flag failed"
+    ((TESTS_FAILED++))
+fi
+
+# Test completion after -d flag (for delete/archive)
+export COMP_WORDS=("note" "-d" "ASG")
+export COMP_CWORD=2
+COMPREPLY=()
+_note_complete_test
+if [[ ${#COMPREPLY[@]} -eq 2 ]]; then
+    echo -e "${GREEN}✓${NC} Completion after -d flag works (found ${#COMPREPLY[@]} matches)"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}✗${NC} Completion after -d flag failed (expected 2, got ${#COMPREPLY[@]})"
+    ((TESTS_FAILED++))
+fi
+
+# Test flag chaining completion patterns
+echo
+echo "Testing flag chaining completion..."
+
+# Test that flag chaining patterns are recognized in completion
+# Since completion doesn't handle flag chaining directly, we just verify
+# that individual flags still work when they would be part of chains
+export COMP_WORDS=("note" "-a" "Life")
+export COMP_CWORD=2
+COMPREPLY=()
+_note_complete_test
+if [[ ${#COMPREPLY[@]} -eq 3 ]]; then
+    echo -e "${GREEN}✓${NC} Archive flag completion works for flag chaining (found ${#COMPREPLY[@]} matches)"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}✗${NC} Archive flag completion failed (expected 3, got ${#COMPREPLY[@]})"
     ((TESTS_FAILED++))
 fi
 

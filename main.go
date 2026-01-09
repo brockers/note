@@ -997,5 +997,5 @@ LICENSE:
   This program is free software licensed under GPL-3.0.
   See <https://www.gnu.org/licenses/> for details.
 
-For more information, see: https://github.com/bobby/note`)
+For more information, see: https://github.com/brockers/note`)
 }

@@ -140,7 +140,7 @@ Requirements:
 
 ```bash
 # Clone the repository
-git clone https://github.com/bobby/note.git
+git clone https://github.com/brockers/note.git
 cd note
 
 # Build the binary

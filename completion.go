@@ -163,7 +163,7 @@ _note_complete() {
                 fi
             fi
         fi
-    # If previous was -ls, -l, -a, or -rm, offer note names
+    # If previous was -l, -a, or -d, offer note names
     elif [[ "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-d" ]]; then
         if [[ -f ~/.note ]]; then
             local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
@@ -255,7 +255,7 @@ _note_complete() {
             compadd -a notes
         fi
         
-    # If previous was -ls, -l, -a, or -rm, offer note names
+    # If previous was -l, -a, or -d, offer note names
     elif [[ "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-d" ]]; then
         if [[ -f ~/.note ]]; then
             local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")

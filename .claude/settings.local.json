@@ -51,7 +51,8 @@
       "Bash(HOME=/tmp/test-list-bug ./note -a bison:*)",
       "Bash(HOME:*)",
       "Bash(sed:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(echo \"Exit code: $?\")"
     ],
     "deny": []
   }

@@ -223,6 +223,36 @@ echo "Archived note" > "$TEST_DIR_LOWER/Notes/archive/archived-$TODAY.md"
 run_test "Lowercase 'archive' directory is recognized" "$NOTE_CMD -a | grep -q archive/archived" ""
 run_test "-l excludes lowercase archive directory" "! $NOTE_CMD -l | grep -qi archive" ""
 
+# Test 28: Flag chaining functionality
+# Reset to clean environment for chaining tests
+TEST_DIR_CHAIN=$(mktemp -d)
+HOME=$TEST_DIR_CHAIN
+echo -e "vim\n$TEST_DIR_CHAIN/Notes\nn\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+
+# Create test notes and archive
+echo "Current note 1" > "$TEST_DIR_CHAIN/Notes/current1-$TODAY.md"
+echo "Current note 2" > "$TEST_DIR_CHAIN/Notes/current2-$TODAY.md"
+echo "Project note" > "$TEST_DIR_CHAIN/Notes/project-$TODAY.md"
+mkdir -p "$TEST_DIR_CHAIN/Notes/Archive"
+echo "Archived note 1" > "$TEST_DIR_CHAIN/Notes/Archive/archived1-$TODAY.md"
+echo "Archived note 2 with todo" > "$TEST_DIR_CHAIN/Notes/Archive/archived2-$TODAY.md"
+echo "TODO: Complete project" > "$TEST_DIR_CHAIN/Notes/project-$TODAY.md"
+
+# Test flag chaining combinations
+run_test "Flag chain -al lists all notes including archived" "$NOTE_CMD -al | grep -q current1 && $NOTE_CMD -al | grep -q Archive/archived1" ""
+run_test "Flag chain -la same as -al" "$NOTE_CMD -la | grep -q current1 && $NOTE_CMD -la | grep -q Archive/archived1" ""
+run_test "Flag chain -as searches archived notes" "$NOTE_CMD -as todo | grep -q Archive/archived2 || $NOTE_CMD -as TODO | grep -q project" ""
+run_test "Flag chain -al with pattern filters correctly" "$NOTE_CMD -al project | grep -q project && ! $NOTE_CMD -al project | grep -q current1" ""
+run_test "Flag chain -la with pattern works same way" "$NOTE_CMD -la project | grep -q project && ! $NOTE_CMD -la project | grep -q current1" ""
+
+# Test error conditions for flag chaining
+run_test "Invalid flag chain -ls gives error" "! $NOTE_CMD -ls >/dev/null 2>&1" ""
+run_test "Invalid flag chain -rm gives error" "! $NOTE_CMD -rm >/dev/null 2>&1" ""  
+run_test "Invalid flag -x gives error" "! $NOTE_CMD -x >/dev/null 2>&1" ""
+
+# Cleanup chaining test directory
+rm -rf "$TEST_DIR_CHAIN"
+
 # Cleanup additional test directories
 rm -rf "$TEST_DIR_NEW" "$TEST_DIR_LOWER"
 
