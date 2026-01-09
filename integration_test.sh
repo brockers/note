@@ -195,6 +195,37 @@ run_test "Zsh aliases can be added to zshrc" "grep -q 'alias n=' $TEST_DIR/.zshr
 echo -e "\n# note command aliases\nalias n './note'\nalias nls './note -l'\nalias nrm './note -rm'" >> "$TEST_DIR/.config/fish/config.fish"
 run_test "Fish aliases can be added to config.fish" "grep -q 'alias n ' $TEST_DIR/.config/fish/config.fish && grep -q 'alias nls ' $TEST_DIR/.config/fish/config.fish && grep -q 'alias nrm ' $TEST_DIR/.config/fish/config.fish" ""
 
+# Test 25: -l flag should exclude archived notes
+TEST_DIR_NEW=$(mktemp -d)
+HOME=$TEST_DIR_NEW
+echo -e "vim\n$TEST_DIR_NEW/Notes\nn\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+echo "Current note" > "$TEST_DIR_NEW/Notes/current-$TODAY.md"
+echo "Another current" > "$TEST_DIR_NEW/Notes/another-$TODAY.md"
+mkdir -p "$TEST_DIR_NEW/Notes/Archive"
+echo "Archived note" > "$TEST_DIR_NEW/Notes/Archive/archived-$TODAY.md"
+# -l should only show current notes, not archived
+run_test "-l flag excludes archived notes" "$NOTE_CMD -l | grep -q current && $NOTE_CMD -l | grep -q another && ! $NOTE_CMD -l | grep -q archived" ""
+run_test "-l with pattern excludes archived notes" "$NOTE_CMD -l current | grep -q current && ! $NOTE_CMD -l archived | grep -q archived" ""
+
+# Test 26: -a flag should include archived notes
+run_test "-a flag includes archived notes" "$NOTE_CMD -a | grep -q current && $NOTE_CMD -a | grep -q Archive/archived" ""
+run_test "-a with pattern includes archived notes" "$NOTE_CMD -a archived | grep -q Archive/archived" ""
+
+# Test 27: Test with lowercase 'archive' directory
+TEST_DIR_LOWER=$(mktemp -d)
+HOME=$TEST_DIR_LOWER
+echo -e "vim\n$TEST_DIR_LOWER/Notes\nn\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+echo "Current note" > "$TEST_DIR_LOWER/Notes/current-$TODAY.md"
+# Create lowercase archive directory
+rm -rf "$TEST_DIR_LOWER/Notes/Archive"
+mkdir -p "$TEST_DIR_LOWER/Notes/archive"
+echo "Archived note" > "$TEST_DIR_LOWER/Notes/archive/archived-$TODAY.md"
+run_test "Lowercase 'archive' directory is recognized" "$NOTE_CMD -a | grep -q archive/archived" ""
+run_test "-l excludes lowercase archive directory" "! $NOTE_CMD -l | grep -qi archive" ""
+
+# Cleanup additional test directories
+rm -rf "$TEST_DIR_NEW" "$TEST_DIR_LOWER"
+
 # Cleanup
 rm -rf "$TEST_DIR"
 

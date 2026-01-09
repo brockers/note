@@ -393,3 +393,56 @@ func TestSetupAliasesPath(t *testing.T) {
 		}
 	}
 }
+
+func TestGetArchiveDir(t *testing.T) {
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "note-archive-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+	
+	notesDir := filepath.Join(tempDir, "Notes")
+	if err := os.MkdirAll(notesDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	
+	// Test 1: No archive directory exists - should return Archive (capital)
+	result := getArchiveDir(notesDir)
+	expected := filepath.Join(notesDir, "Archive")
+	if result != expected {
+		t.Errorf("No archive exists: expected %s, got %s", expected, result)
+	}
+	
+	// Test 2: Only lowercase archive exists - should return archive
+	archiveLower := filepath.Join(notesDir, "archive")
+	if err := os.MkdirAll(archiveLower, 0755); err != nil {
+		t.Fatal(err)
+	}
+	
+	result = getArchiveDir(notesDir)
+	if result != archiveLower {
+		t.Errorf("Only lowercase exists: expected %s, got %s", archiveLower, result)
+	}
+	
+	// Test 3: Both Archive and archive exist - should prefer Archive (capital)
+	archiveUpper := filepath.Join(notesDir, "Archive")
+	if err := os.MkdirAll(archiveUpper, 0755); err != nil {
+		t.Fatal(err)
+	}
+	
+	result = getArchiveDir(notesDir)
+	if result != archiveUpper {
+		t.Errorf("Both exist: expected %s (capital), got %s", archiveUpper, result)
+	}
+	
+	// Test 4: Only Archive (capital) exists - should return Archive
+	if err := os.RemoveAll(archiveLower); err != nil {
+		t.Fatal(err)
+	}
+	
+	result = getArchiveDir(notesDir)
+	if result != archiveUpper {
+		t.Errorf("Only capital exists: expected %s, got %s", archiveUpper, result)
+	}
+}
