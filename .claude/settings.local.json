@@ -5,7 +5,7 @@
       "Bash(go:*)",
       "Bash(./note --help)",
       "Bash(chmod:*)",
-      "Bash(./integration_test.sh:*)",
+      "Bash(./scripts/integration_test.sh:*)",
       "Bash(./note -ls)",
       "Bash(./note -s \"TODO\")",
       "Bash(./note:*)",
@@ -37,7 +37,8 @@
       "Bash(HOME=\"$(pwd)\" ./note -l)",
       "Bash(HOME=\"$(pwd)\" ./note -l)",
       "Bash(echo $HOME)",
-      "Bash(./setup_integration_test.sh:*)",
+      "Bash(./scripts/setup_integration_test.sh:*)",
+      "Bash(./scripts/completion_test.sh:*)",
       "Bash(HOME=/tmp/test-note-setup ./note:*)",
       "Bash(HOME=/tmp/test-note-setup timeout 1 ./note)",
       "Bash(true)",
@@ -48,7 +49,9 @@
       "Bash(git log:*)",
       "Bash(HOME=/tmp/test-list-bug ./note -l bison:*)",
       "Bash(HOME=/tmp/test-list-bug ./note -a bison:*)",
-      "Bash(HOME:*)"
+      "Bash(HOME:*)",
+      "Bash(sed:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

@@ -35,19 +35,19 @@ test:
 
 # Run integration tests
 integration-test: build
-	./integration_test.sh
+	./scripts/integration_test.sh
 
 # Run completion tests
 completion-test: build
-	./completion_test.sh
+	./scripts/completion_test.sh
 
 # Run setup integration tests
 setup-test: build
-	./setup_integration_test.sh
+	./scripts/setup_integration_test.sh
 
 # Run setup integration tests (non-failing for CI)
 setup-test-ci: build
-	-./setup_integration_test.sh
+	-./scripts/setup_integration_test.sh
 
 # Run all tests
 test-all: test integration-test completion-test setup-test-ci

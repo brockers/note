@@ -58,10 +58,10 @@ make clean
 go test -v
 
 # Integration tests (requires setup)
-./integration_test.sh
+./scripts/integration_test.sh
 
 # Completion tests
-./completion_test.sh
+./scripts/completion_test.sh
 ```
 
 ## Validation Commands
@@ -92,9 +92,10 @@ note/
 ├── Makefile                  # Build automation
 ├── README.md                 # User documentation
 ├── SETUP.md                  # Setup instructions
-├── integration_test.sh       # E2E tests
-├── completion_test.sh        # Tab completion tests
-├── setup_integration_test.sh # Test setup script
+├── scripts/                  # Test and utility scripts
+│   ├── integration_test.sh       # E2E tests
+│   ├── completion_test.sh        # Tab completion tests
+│   └── setup_integration_test.sh # Test setup script
 ├── docs/                     # Documentation
 │   └── note-cli-prd.md      # Product requirements
 └── .claude/                  # Claude Code configuration
