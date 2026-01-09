@@ -142,7 +142,7 @@ _note_complete() {
     if [[ ${COMP_CWORD} -eq 1 ]]; then
         # If user starts typing a dash, offer flags
         if [[ "$cur" == -* ]]; then
-            local flags="-ls -l -s -a -rm --config --autocomplete --help -h"
+            local flags="-l -s -a -d --config --autocomplete --alias --help -h"
             COMPREPLY=($(compgen -W "$flags" -- "${cur}"))
         else
             # Otherwise, prioritize note names
@@ -164,7 +164,7 @@ _note_complete() {
             fi
         fi
     # If previous was -ls, -l, -a, or -rm, offer note names
-    elif [[ "$prev" == "-ls" || "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-rm" ]]; then
+    elif [[ "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-d" ]]; then
         if [[ -f ~/.note ]]; then
             local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
             if [[ -d "$notesdir" ]]; then
@@ -233,7 +233,7 @@ _note_complete() {
     if [[ $CURRENT -eq 2 ]]; then
         # If user starts typing a dash, offer flags
         if [[ "$cur" == -* ]]; then
-            local flags=("-ls" "-l" "-s" "-a" "-rm" "--config" "--autocomplete" "--help" "-h")
+            local flags=("-l" "-s" "-a" "-d" "--config" "--autocomplete" "--alias" "--help" "-h")
             compadd -a flags
         else
             # Otherwise, prioritize note names
@@ -256,7 +256,7 @@ _note_complete() {
         fi
         
     # If previous was -ls, -l, -a, or -rm, offer note names
-    elif [[ "$prev" == "-ls" || "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-rm" ]]; then
+    elif [[ "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-d" ]]; then
         if [[ -f ~/.note ]]; then
             local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
             if [[ -d "$notesdir" ]]; then
@@ -323,12 +323,13 @@ func SetupFishCompletion() {
 	// Create a simple fish completion script
 	fishCompletionScript := `# note command completion for fish
 complete -c note -f
-complete -c note -s l -s ls -d "List notes"
+complete -c note -s l -d "List notes"
 complete -c note -s s -d "Search notes" -r
 complete -c note -s a -d "Include archived notes"
-complete -c note -s rm -d "Archive notes" -r
+complete -c note -s d -d "Archive notes" -r
 complete -c note -l config -d "Run setup/reconfigure"
 complete -c note -l autocomplete -d "Setup/update command line autocompletion"
+complete -c note -l alias -d "Setup shell aliases"
 complete -c note -s h -l help -d "Show help"
 
 # Complete with existing note names for main argument

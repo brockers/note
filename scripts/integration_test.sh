@@ -68,18 +68,18 @@ run_test "Note file structure" "test -f $TEST_DIR/Notes/test-note-$TODAY.md" ""
 # Test 6: List notes
 echo "Test content" > "$TEST_DIR/Notes/meeting-$TODAY.md"
 echo "Another note" > "$TEST_DIR/Notes/project-$TODAY.md"
-run_test "List all notes" "$NOTE_CMD -ls | grep -c '.md' | grep -q 3" ""
+run_test "List all notes" "$NOTE_CMD -l | grep -c '.md' | grep -q 3" ""
 
 # Test 7: List with pattern
-run_test "List with pattern" "$NOTE_CMD -ls meeting | grep -q meeting" ""
-run_test "Pattern filters correctly" "$NOTE_CMD -ls meeting | grep -v project > /dev/null" ""
+run_test "List with pattern" "$NOTE_CMD -l meeting | grep -q meeting" ""
+run_test "Pattern filters correctly" "$NOTE_CMD -l meeting | grep -v project > /dev/null" ""
 
 # Test 8: Full-text search
 echo "TODO: Fix bug" > "$TEST_DIR/Notes/bug-report-$TODAY.md"
 run_test "Full-text search finds content" "$NOTE_CMD -s 'TODO' 2>&1 | grep -q 'bug-report'" ""
 
 # Test 9: Archive functionality
-$NOTE_CMD -rm "test-note*" > /dev/null 2>&1
+$NOTE_CMD -d "test-note*" > /dev/null 2>&1
 run_test "Archive moves file" "test -f $TEST_DIR/Notes/Archive/test-note-$TODAY.md" ""
 run_test "Archived file removed from main" "! test -f $TEST_DIR/Notes/test-note-$TODAY.md" ""
 
@@ -90,13 +90,13 @@ run_test "List archived notes" "$NOTE_CMD -a | grep -q 'Archive/test-note'" ""
 echo "Note 1" > "$TEST_DIR/Notes/temp1-$TODAY.md"
 echo "Note 2" > "$TEST_DIR/Notes/temp2-$TODAY.md"
 echo "Note 3" > "$TEST_DIR/Notes/keep-$TODAY.md"
-$NOTE_CMD -rm "temp*" > /dev/null 2>&1
+$NOTE_CMD -d "temp*" > /dev/null 2>&1
 run_test "Bulk archive works" "test -f $TEST_DIR/Notes/Archive/temp1-$TODAY.md" ""
 run_test "Pattern preserves non-matching" "test -f $TEST_DIR/Notes/keep-$TODAY.md" ""
 
 # Test 12: Edge cases
 touch "$TEST_DIR/Notes/note with spaces-$TODAY.md"
-run_test "Handles spaces in names" "$NOTE_CMD -ls | grep -q 'note with spaces'" ""
+run_test "Handles spaces in names" "$NOTE_CMD -l | grep -q 'note with spaces'" ""
 
 # Test 13: Opening existing files without .md extension
 echo "Test content" > "$TEST_DIR/Notes/existing-note-20240426.md"
@@ -184,11 +184,11 @@ export SHELL="/bin/bash"
 run_test "Alias detection returns false when no aliases exist" "! grep -q 'alias nls=' $TEST_DIR/.bashrc" ""
 
 # Test adding aliases to bash config (simulate what the setup would do)
-echo -e "\n# note command aliases\nalias n='./note'\nalias nls='./note -l'\nalias nrm='./note -rm'" >> "$TEST_DIR/.bashrc"
+echo -e "\n# note command aliases\nalias n='./note'\nalias nls='./note -l'\nalias nrm='./note -d'" >> "$TEST_DIR/.bashrc"
 run_test "Bash aliases can be added to bashrc" "grep -q 'alias n=' $TEST_DIR/.bashrc && grep -q 'alias nls=' $TEST_DIR/.bashrc && grep -q 'alias nrm=' $TEST_DIR/.bashrc" ""
 
 # Test adding aliases to zsh config
-echo -e "\n# note command aliases\nalias n='./note'\nalias nls='./note -l'\nalias nrm='./note -rm'" >> "$TEST_DIR/.zshrc"
+echo -e "\n# note command aliases\nalias n='./note'\nalias nls='./note -l'\nalias nrm='./note -d'" >> "$TEST_DIR/.zshrc"
 run_test "Zsh aliases can be added to zshrc" "grep -q 'alias n=' $TEST_DIR/.zshrc && grep -q 'alias nls=' $TEST_DIR/.zshrc && grep -q 'alias nrm=' $TEST_DIR/.zshrc" ""
 
 # Test adding aliases to fish config (fish uses different syntax)

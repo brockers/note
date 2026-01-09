@@ -19,7 +19,6 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -28,7 +27,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
 )
 
 type Config struct {
@@ -102,85 +100,91 @@ func main() {
 		return
 	}
 
-	// Parse flags
-	var (
-		listFlag        = flag.Bool("ls", false, "List all current notes")
-		listFlagAlt     = flag.Bool("l", false, "List all current notes (short form)")
-		searchFlag      = flag.String("s", "", "Full-text search in notes")
-		archiveFlag     = flag.Bool("a", false, "List/search all notes including archived")
-		removeFlag      = flag.String("rm", "", "Archive matching notes")
-		configFlag      = flag.Bool("config", false, "Run setup/reconfigure")
-		autocompleteFlag = flag.Bool("autocomplete", false, "Setup/update command line autocompletion")
-		helpFlag        = flag.Bool("help", false, "Show help")
-		helpFlagAlt     = flag.Bool("h", false, "Show help (short form)")
-	)
-	flag.Parse()
+	// Parse custom flags with Unix-like behavior
+	flags, args := parseFlags(os.Args[1:])
 
 	// Handle help
-	if *helpFlag || *helpFlagAlt {
+	if flags.Help {
 		printHelp()
 		return
 	}
 
 	// Handle config
-	if *configFlag {
+	if flags.Config {
 		runSetup()
 		// Explicitly exit after config to prevent any further execution
 		os.Exit(0)
 	}
 
 	// Handle autocomplete setup
-	if *autocompleteFlag {
+	if flags.Autocomplete {
 		RunAutocompleteSetup()
 		return
 	}
 
-	// Handle listing
-	if *listFlag || *listFlagAlt {
+	// Handle alias setup
+	if flags.Alias {
+		RunAliasSetup()
+		return
+	}
+
+	// Handle combined archive + list or search
+	if flags.Archive && flags.List {
 		pattern := ""
-		if flag.NArg() > 0 {
-			// Join all arguments to handle spaces in search patterns
-			noteArgs := flag.Args()
-			pattern = strings.Join(noteArgs, " ")
+		if len(args) > 0 {
+			pattern = strings.Join(args, " ")
+		}
+		listNotes(config, pattern, true)
+		return
+	}
+
+	// Handle combined archive + search
+	if flags.Archive && flags.Search != "" {
+		searchNotes(config, flags.Search, true)
+		return
+	}
+
+	// Handle listing
+	if flags.List {
+		pattern := ""
+		if len(args) > 0 {
+			pattern = strings.Join(args, " ")
 		}
 		listNotes(config, pattern, false)
 		return
 	}
 
-	// Handle archive listing
-	if *archiveFlag {
+	// Handle archive listing only
+	if flags.Archive {
 		pattern := ""
-		if flag.NArg() > 0 {
-			// Join all arguments to handle spaces in search patterns
-			noteArgs := flag.Args()
-			pattern = strings.Join(noteArgs, " ")
+		if len(args) > 0 {
+			pattern = strings.Join(args, " ")
 		}
 		listNotes(config, pattern, true)
 		return
 	}
 
 	// Handle full-text search
-	if *searchFlag != "" {
-		searchNotes(config, *searchFlag, false)
+	if flags.Search != "" {
+		searchNotes(config, flags.Search, false)
 		return
 	}
 
-	// Handle archive/remove
-	if *removeFlag != "" {
-		archiveNotes(config, *removeFlag)
+	// Handle archive/delete
+	if flags.Delete != "" {
+		archiveNotes(config, flags.Delete)
 		return
 	}
 
 	// Handle note creation/opening
-	if flag.NArg() == 0 {
+	if len(args) == 0 {
 		// No arguments, just run note without args (could open today's journal or show help)
 		printHelp()
 		return
 	}
 
 	// Join all arguments to handle spaces in note names
-	noteArgs := flag.Args()
-	noteName := strings.Join(noteArgs, " ")
+	noteName := strings.Join(args, " ")
 	openOrCreateNote(config, noteName)
 }
 
@@ -358,7 +362,7 @@ func setupAliases(reader *bufio.Reader) {
 	}
 
 	fmt.Println()
-	fmt.Print("Would you like to set up shell aliases (n -> note, nls -> note -l, nrm -> note -rm)? (y/N): ")
+	fmt.Print("Would you like to set up shell aliases (n -> note, nls -> note -l, nrm -> note -d)? (y/N): ")
 	response, _ := reader.ReadString('\n')
 	response = strings.ToLower(strings.TrimSpace(response))
 	
@@ -435,7 +439,7 @@ func setupBashAliases() {
 		}
 	}
 
-	aliasLines := fmt.Sprintf("\n# note command aliases\nalias n='%s'\nalias nls='%s -l'\nalias nrm='%s -rm'\n", notePath, notePath, notePath)
+	aliasLines := fmt.Sprintf("\n# note command aliases\nalias n='%s'\nalias nls='%s -l'\nalias nrm='%s -d'\n", notePath, notePath, notePath)
 
 	// Append to .bashrc
 	file, err := os.OpenFile(bashrcPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
@@ -475,7 +479,7 @@ func setupZshAliases() {
 		}
 	}
 
-	aliasLines := fmt.Sprintf("\n# note command aliases\nalias n='%s'\nalias nls='%s -l'\nalias nrm='%s -rm'\n", notePath, notePath, notePath)
+	aliasLines := fmt.Sprintf("\n# note command aliases\nalias n='%s'\nalias nls='%s -l'\nalias nrm='%s -d'\n", notePath, notePath, notePath)
 
 	// Append to .zshrc
 	file, err := os.OpenFile(zshrcPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
@@ -522,7 +526,7 @@ func setupFishAliases() {
 		}
 	}
 
-	aliasLines := fmt.Sprintf("\n# note command aliases\nalias n '%s'\nalias nls '%s -l'\nalias nrm '%s -rm'\n", notePath, notePath, notePath)
+	aliasLines := fmt.Sprintf("\n# note command aliases\nalias n '%s'\nalias nls '%s -l'\nalias nrm '%s -d'\n", notePath, notePath, notePath)
 
 	// Append to config.fish
 	file, err := os.OpenFile(fishConfigPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
@@ -816,6 +820,115 @@ func archiveNotes(config Config, pattern string) {
 	}
 }
 
+// ParsedFlags represents parsed command line flags
+type ParsedFlags struct {
+	List         bool
+	Search       string
+	Archive      bool
+	Delete       string
+	Config       bool
+	Autocomplete bool
+	Alias        bool
+	Help         bool
+}
+
+// parseFlags implements Unix-like flag parsing with support for flag chaining
+func parseFlags(args []string) (*ParsedFlags, []string) {
+	flags := &ParsedFlags{}
+	var remainingArgs []string
+	
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		
+		if arg == "--help" {
+			flags.Help = true
+		} else if arg == "--config" {
+			flags.Config = true
+		} else if arg == "--autocomplete" {
+			flags.Autocomplete = true
+		} else if arg == "--alias" {
+			flags.Alias = true
+		} else if strings.HasPrefix(arg, "--") {
+			// Unknown long flag, treat as regular argument
+			remainingArgs = append(remainingArgs, arg)
+		} else if strings.HasPrefix(arg, "-") && len(arg) > 1 {
+			// Handle short flags and flag chaining
+			flagChars := arg[1:] // Remove the '-' prefix
+			
+			for j, char := range flagChars {
+				switch char {
+				case 'h':
+					flags.Help = true
+				case 'l':
+					flags.List = true
+				case 'a':
+					flags.Archive = true
+				case 's':
+					// -s requires an argument
+					if j == len(flagChars)-1 {
+						// -s is the last flag in the chain, next arg is the search term
+						if i+1 < len(args) {
+							i++
+							flags.Search = args[i]
+						} else {
+							fmt.Fprintf(os.Stderr, "Error: -s flag requires a search term\n")
+							os.Exit(1)
+						}
+					} else {
+						fmt.Fprintf(os.Stderr, "Error: -s flag must be the last in a flag chain\n")
+						os.Exit(1)
+					}
+				case 'd':
+					// -d requires an argument
+					if j == len(flagChars)-1 {
+						// -d is the last flag in the chain, next arg is the pattern
+						if i+1 < len(args) {
+							i++
+							flags.Delete = args[i]
+						} else {
+							fmt.Fprintf(os.Stderr, "Error: -d flag requires a pattern\n")
+							os.Exit(1)
+						}
+					} else {
+						fmt.Fprintf(os.Stderr, "Error: -d flag must be the last in a flag chain\n")
+						os.Exit(1)
+					}
+				default:
+					fmt.Fprintf(os.Stderr, "Error: unknown flag -%c\n", char)
+					os.Exit(1)
+				}
+			}
+		} else {
+			// Regular argument
+			remainingArgs = append(remainingArgs, arg)
+		}
+	}
+	
+	return flags, remainingArgs
+}
+
+// RunAliasSetup handles the standalone alias setup flow
+func RunAliasSetup() {
+	fmt.Println("note - Shell Alias Setup")
+	fmt.Println()
+	fmt.Println("This will set up convenient shell aliases:")
+	fmt.Println("• n -> note")
+	fmt.Println("• nls -> note -l")
+	fmt.Println("• nrm -> note -d")
+	fmt.Println()
+	
+	// Check if aliases are already set up
+	if areAliasesAlreadySetup() {
+		fmt.Println("Aliases are already set up!")
+		return
+	}
+	
+	reader := bufio.NewReader(os.Stdin)
+	
+	// Use the existing setupAliases function for the core logic
+	setupAliases(reader)
+}
+
 func copyFile(src, dst string) error {
 	source, err := os.Open(src)
 	if err != nil {
@@ -839,27 +952,42 @@ func printHelp() {
 USAGE:
   note [name]              Create/open note with automatic dating
   note [name-date.md]      Open specific dated note
-  note [OPTIONS]
+  note [OPTIONS] [args...]
 
 OPTIONS:
 
-  -ls, -l [pattern]        List notes (optionally matching pattern)
-  -s [term]                Full-text search in notes
-  -rm [pattern]            Archive matching notes
-  -a [pattern]             List/search all notes including archived
+  -l [pattern]             List notes (optionally matching pattern)
+  -s <term>                Full-text search in notes
+  -d <pattern>             Delete/archive matching notes
+  -a [pattern]             Include archived notes in list/search
+  -h                       Show this help message
 
-  --help, -h               Show this help message
+  --help                   Show this help message
   --config                 Run setup/reconfigure
   --autocomplete           Setup/update command line autocompletion
+  --alias                  Setup shell aliases (n, nls, nrm)
+
+FLAG CHAINING:
+  Single-character flags can be combined:
+  -al [pattern]            List all notes (including archived)
+  -as <term>               Search all notes (including archived)
+  -la [pattern]            Same as -al
 
 EXAMPLES:
-  note meeting             Creates meeting-20260108.md
-  note project-ideas       Creates project-ideas-20260108.md
-  note -ls                 List all current notes
-  note -ls project         List notes containing "project"
-  note -s "todo"           Search for "todo" in all notes
-  note -rm old-*           Archive notes starting with "old-"
+  note meeting             Creates meeting-20260109.md
+  note project-ideas       Creates project-ideas-20260109.md
+  note -l                  List all current notes
+  note -l project          List notes containing "project"
+  note -s "todo"           Search for "todo" in current notes
+  note -as "todo"          Search for "todo" in all notes (including archived)
+  note -d old-*            Archive notes starting with "old-"
   note -a                  List all notes including archived
+
+ALIASES:
+  After running 'note --alias', you can use:
+  n                        Same as 'note'
+  nls                      Same as 'note -l'
+  nrm                      Same as 'note -d'
 
 CONFIGURATION:
   Settings are stored in ~/.note
