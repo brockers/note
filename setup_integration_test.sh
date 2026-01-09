@@ -108,7 +108,7 @@ run_test "First run detects missing config" \
 
 # Test 1.2: Interactive setup with default values
 export HOME="$TEST_ENV"
-simulate_input "vim\n~/Notes\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+simulate_input "vim\n~/Notes\nn\nn\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
 
 run_test "Setup creates config file" \
     "test -f $TEST_ENV/.note"
@@ -132,7 +132,7 @@ unset HOME
 TEST_ENV=$(setup_test_env "custom-editor")
 export HOME="$TEST_ENV"
 
-simulate_input "nano\n~/MyNotes\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+simulate_input "nano\n~/MyNotes\nn\nn\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
 
 run_test "Custom editor is saved" \
     "grep -q '^editor=nano$' $TEST_ENV/.note"
@@ -148,7 +148,7 @@ TEST_ENV=$(setup_test_env "editor-env")
 export HOME="$TEST_ENV"
 export EDITOR="emacs"
 
-simulate_input "\n~/Notes\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+simulate_input "\n~/Notes\nn\nn\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
 
 run_test "\$EDITOR fallback works" \
     "grep -q '^editor=emacs$' $TEST_ENV/.note"
@@ -161,7 +161,7 @@ unset HOME
 TEST_ENV=$(setup_test_env "absolute-paths")
 export HOME="$TEST_ENV"
 
-simulate_input "vim\n$TEST_ENV/AbsoluteNotes\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+simulate_input "vim\n$TEST_ENV/AbsoluteNotes\nn\nn\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
 
 run_test "Absolute path in config" \
     "grep -q \"notesdir=$TEST_ENV/AbsoluteNotes\" $TEST_ENV/.note"
@@ -191,7 +191,7 @@ run_test "Config file format is valid" \
     "grep -E '^(editor|notesdir)=' $TEST_ENV/.note | wc -l | grep -q 2"
 
 # Test 2.2: Config modification via --config
-simulate_input "code\n~/NewNotes\nn\nn\n" | $NOTE_CMD --config > /dev/null 2>&1
+simulate_input "code\n~/NewNotes\nn\nn\n" | timeout 10 $NOTE_CMD --config > /dev/null 2>&1 || true
 
 run_test "Config can be modified" \
     "grep -q '^editor=code$' $TEST_ENV/.note"
@@ -320,8 +320,15 @@ export HOME="$TEST_ENV"
 export SHELL="/bin/bash"
 touch "$TEST_ENV/.bashrc"
 
-# Simulate autocomplete setup
-simulate_input "y\n" | $NOTE_CMD --autocomplete > /dev/null 2>&1
+# Create a basic config first to avoid setup prompt
+cat > "$TEST_ENV/.note" << EOF
+editor=vim
+notesdir=$TEST_ENV/Notes
+EOF
+mkdir -p "$TEST_ENV/Notes/Archive"
+
+# Simulate autocomplete setup (with timeout to prevent hanging)
+simulate_input "y\n" | timeout 10 $NOTE_CMD --autocomplete > /dev/null 2>&1 || true
 
 run_test "Bash completion script created" \
     "test -f $TEST_ENV/.note.bash"
@@ -339,7 +346,14 @@ export HOME="$TEST_ENV"
 export SHELL="/bin/zsh"
 touch "$TEST_ENV/.zshrc"
 
-simulate_input "y\n" | $NOTE_CMD --autocomplete > /dev/null 2>&1
+# Create a basic config first to avoid setup prompt
+cat > "$TEST_ENV/.note" << EOF
+editor=vim
+notesdir=$TEST_ENV/Notes
+EOF
+mkdir -p "$TEST_ENV/Notes/Archive"
+
+simulate_input "y\n" | timeout 10 $NOTE_CMD --autocomplete > /dev/null 2>&1 || true
 
 run_test "Zsh completion script created" \
     "test -f $TEST_ENV/.note.zsh"
@@ -354,7 +368,14 @@ export HOME="$TEST_ENV"
 export SHELL="/usr/bin/fish"
 mkdir -p "$TEST_ENV/.config/fish/completions"
 
-simulate_input "y\n" | $NOTE_CMD --autocomplete > /dev/null 2>&1
+# Create a basic config first to avoid setup prompt
+cat > "$TEST_ENV/.note" << EOF
+editor=vim
+notesdir=$TEST_ENV/Notes
+EOF
+mkdir -p "$TEST_ENV/Notes/Archive"
+
+simulate_input "y\n" | timeout 10 $NOTE_CMD --autocomplete > /dev/null 2>&1 || true
 
 run_test "Fish completion directory used" \
     "test -d $TEST_ENV/.config/fish/completions"
@@ -371,7 +392,7 @@ echo
 TEST_ENV=$(setup_test_env "dir-perms")
 export HOME="$TEST_ENV"
 
-simulate_input "vim\n~/TestNotes\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+simulate_input "vim\n~/TestNotes\nn\nn\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
 
 run_test "Directory has correct permissions" \
     "stat -c '%a' $TEST_ENV/TestNotes 2>/dev/null | grep -E '755|775'"
@@ -383,7 +404,7 @@ unset HOME
 TEST_ENV=$(setup_test_env "nested-dirs")
 export HOME="$TEST_ENV"
 
-simulate_input "vim\n$TEST_ENV/path/to/notes\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+simulate_input "vim\n$TEST_ENV/path/to/notes\nn\nn\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
 
 run_test "Nested directories are created" \
     "test -d $TEST_ENV/path/to/notes"
@@ -431,7 +452,7 @@ TEST_ENV=$(setup_test_env "invalid-editor")
 export HOME="$TEST_ENV"
 
 # Test with non-existent editor (should still save config)
-simulate_input "nonexistenteditor\n~/Notes\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+simulate_input "nonexistenteditor\n~/Notes\nn\nn\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
 
 run_test "Invalid editor still saves config" \
     "test -f $TEST_ENV/.note"
@@ -447,7 +468,7 @@ export HOME="$TEST_ENV"
 mkdir -p "$TEST_ENV/readonly"
 chmod 555 "$TEST_ENV/readonly"
 
-simulate_input "vim\n$TEST_ENV/readonly/notes\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+simulate_input "vim\n$TEST_ENV/readonly/notes\nn\nn\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
 
 run_test "Handles permission denied gracefully" \
     "! test -d $TEST_ENV/readonly/notes/Archive"
@@ -463,9 +484,9 @@ export HOME="$TEST_ENV"
 # Create corrupted config
 echo "this is not valid config" > "$TEST_ENV/.note"
 
-# The app should handle this gracefully
+# The app should handle this gracefully by running setup, then showing help
 run_test "Handles corrupted config" \
-    "$NOTE_CMD --help 2>&1 | grep -q 'note - A minimalist' || true"
+    "simulate_input 'vim\n~/Notes\nn\nn\n' | timeout 10 $NOTE_CMD --help 2>&1 | grep -q 'note - A minimalist'"
 
 cleanup_test_env "$TEST_ENV"
 unset HOME
@@ -480,7 +501,7 @@ export HOME="$TEST_ENV"
 export SHELL="/bin/bash"
 
 # Full setup with all options
-simulate_input "vim\n~/MyNotes\ny\ny\n" | $NOTE_CMD > /dev/null 2>&1
+simulate_input "vim\n~/MyNotes\ny\ny\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
 
 run_test "Complete setup creates all components" \
     "test -f $TEST_ENV/.note && test -d $TEST_ENV/MyNotes && test -d $TEST_ENV/MyNotes/Archive"
@@ -510,7 +531,7 @@ mkdir -p "$TEST_ENV/ExistingNotes"
 echo "Old note 1" > "$TEST_ENV/ExistingNotes/old1.md"
 echo "Old note 2" > "$TEST_ENV/ExistingNotes/old2.md"
 
-simulate_input "vim\n$TEST_ENV/ExistingNotes\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+simulate_input "vim\n$TEST_ENV/ExistingNotes\nn\nn\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
 
 run_test "Existing notes preserved" \
     "test -f $TEST_ENV/ExistingNotes/old1.md && test -f $TEST_ENV/ExistingNotes/old2.md"
@@ -570,7 +591,7 @@ TEST_ENV=$(setup_test_env "long-paths")
 export HOME="$TEST_ENV"
 
 LONG_PATH="$TEST_ENV/this/is/a/very/long/path/to/test/directory/creation/with/many/levels/notes"
-simulate_input "vim\n$LONG_PATH\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+simulate_input "vim\n$LONG_PATH\nn\nn\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
 
 run_test "Long path creation" \
     "test -d '$LONG_PATH'"
@@ -583,7 +604,7 @@ TEST_ENV=$(setup_test_env "spaces")
 export HOME="$TEST_ENV"
 
 SPACE_PATH="$TEST_ENV/My Notes Directory"
-simulate_input "vim\n\"$SPACE_PATH\"\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+simulate_input "vim\n\"$SPACE_PATH\"\nn\nn\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
 
 # Check both with quotes and escaped version
 run_test "Path with spaces" \
@@ -597,7 +618,7 @@ TEST_ENV=$(setup_test_env "unicode")
 export HOME="$TEST_ENV"
 
 UNICODE_PATH="$TEST_ENV/筆記"
-simulate_input "vim\n$UNICODE_PATH\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+simulate_input "vim\n$UNICODE_PATH\nn\nn\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
 
 run_test "Unicode path support" \
     "test -d '$UNICODE_PATH'"
@@ -610,7 +631,7 @@ TEST_ENV=$(setup_test_env "empty-input")
 export HOME="$TEST_ENV"
 
 # Test with empty editor (should use $EDITOR or fail gracefully)
-EDITOR="nano" simulate_input "\n~/Notes\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+EDITOR="nano" simulate_input "\n~/Notes\nn\nn\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
 
 run_test "Empty editor input uses default" \
     "test -f $TEST_ENV/.note"
@@ -626,7 +647,7 @@ echo
 TEST_ENV=$(setup_test_env "no-help-after-setup")
 export HOME="$TEST_ENV"
 
-OUTPUT=$(simulate_input "vim\n~/Notes\nn\nn\n" | $NOTE_CMD 2>&1)
+OUTPUT=$(simulate_input "vim\n~/Notes\nn\nn\n" | timeout 10 $NOTE_CMD 2>&1 || true)
 run_test "No help shown after first setup" \
     "! echo '$OUTPUT' | grep -q 'Usage:'"
 
@@ -639,7 +660,7 @@ export HOME="$TEST_ENV"
 
 mkdir -p "$TEST_ENV/real"
 if ln -s "$TEST_ENV/real" "$TEST_ENV/link" 2>/dev/null; then
-    simulate_input "vim\n$TEST_ENV/link\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+    simulate_input "vim\n$TEST_ENV/link\nn\nn\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
     
     run_test "Symlink properly resolved in config" \
         "test -f $TEST_ENV/.note && grep -q 'notesdir=' $TEST_ENV/.note"
@@ -657,7 +678,7 @@ export SHELL="/bin/bash"
 touch "$TEST_ENV/.bashrc"
 
 # Run setup with alias confirmation
-simulate_input "vim\n~/Notes\nn\ny\n" | $NOTE_CMD > /dev/null 2>&1
+simulate_input "vim\n~/Notes\nn\ny\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
 
 # Check if the bashrc was updated (the actual command would update it)
 run_test "Alias setup modifies shell config" \

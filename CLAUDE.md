@@ -4,119 +4,127 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Nature
 
-This is a **PRP (Product Requirement Prompt) Framework** repository, not a traditional software project. The core concept: **"PRP = PRD + curated codebase intelligence + agent/runbook"** - designed to enable AI agents to ship production-ready code on the first pass.
+This is a **minimalist command-line note-taking tool** written in Go. It provides a simple, opinionated interface for creating, organizing, and managing markdown notes with automatic date stamping and bash completion.
 
 ## Core Architecture
 
-### Command-Driven System
+### Single Binary Design
 
-- **pre-configured Claude Code commands** in `.claude/commands/`
-- Commands organized by function:
-  - `PRPs/` - PRP creation and execution workflows
-  - `development/` - Core development utilities (prime-core, onboarding, debug)
+- **Language**: Go (1.24.11+)
+- **Main file**: `main.go` - contains all core functionality
+- **Philosophy**: Unix philosophy - do one thing well
+- **Dependencies**: Zero external dependencies, just Go standard library
 
-### Template-Based Methodology
+### Key Features
 
-- **PRP Templates** in `claude/PRPs/templates/` follow structured format with validation loops
-- **Context-Rich Approach**: Every PRP must include comprehensive documentation, examples, and gotchas
-- **Validation-First Design**: Each PRP contains executable validation gates (syntax, tests, integration)
-
-### AI Documentation Curation
-
-- `claude/ai_docs/` contains curated Claude Code documentation for context injection
-- `claude/library/` provides framework-specific CLAUDE.md examples
+- Automatic date stamping (`-yyyymmdd` format)
+- Bash tab completion
+- Simple two-question setup process
+- Archive functionality (notes never deleted)
+- Markdown-only format for universal access
+- Configuration stored in `~/.note` file
 
 ## Development Commands
 
-### Key Claude Commands
-
-- `/prp-base-create` - Generate comprehensive PRPs with research
-- `/prp-base-execute` - Execute PRPs against codebase
-- `/prp-planning-create` - Create planning documents with diagrams
-- `/prime-core` - Prime Claude with project context
-- `/review-staged-unstaged` - Review git changes using PRP methodology
-
-## Critical Success Patterns
-
-### The PRP Methodology
-
-1. **Context is King**: Include ALL necessary documentation, examples, and caveats
-2. **Validation Loops**: Provide executable tests/lints the AI can run and fix
-3. **Information Dense**: Use keywords and patterns from the codebase
-4. **Progressive Success**: Start simple, validate, then enhance
-
-### PRP Structure Requirements
-
-- **Goal**: Specific end state and desires
-- **Why**: Business value and user impact
-- **What**: User-visible behavior and technical requirements
-- **All Needed Context**: Documentation URLs, code examples, gotchas, patterns
-- **Implementation Blueprint**: Pseudocode with critical details and task lists
-- **Validation Loop**: Executable commands for syntax, tests, integration
-
-### Validation Gates (Must be Executable)
+### Available Make Targets
 
 ```bash
-# Level 1: Syntax & Style
-npm run lint
+# Build the binary
+make build
+
+# Run unit tests
+make test
+
+# Run integration tests  
+make integration-test
+
+# Run all tests
+make test-all
+
+# Install system-wide
+make install
+
+# Format code
+make fmt
+
+# Clean artifacts
+make clean
+```
+
+### Test Commands
+
+```bash
+# Unit tests
+go test -v
+
+# Integration tests (requires setup)
+./integration_test.sh
+
+# Completion tests
+./completion_test.sh
+```
+
+## Validation Commands
+
+When working on this project, run these validation steps:
+
+```bash
+# Level 1: Build Check
+go build -o note
 
 # Level 2: Unit Tests
-npm run test
+make test
 
-# Level 3: Integration
-npm run dev
-curl -X POST http://localhost:8000/endpoint -H "Content-Type: application/json" -d '{...}'
+# Level 3: Integration Tests
+make integration-test
 
-# Level 4: Deployment
-# mcp servers, or other creative ways to self validate
+# Level 4: Completion Tests
+make completion-test
 ```
 
-## Anti-Patterns to Avoid
-
-- L Don't create minimal context prompts - context is everything - the PRP must be comprehensive and self-contained, reference relevant documentation and examples.
-- L Don't skip validation steps - they're critical for one-pass success - The better The AI is at running the validation loop, the more likely it is to succeed.
-- L Don't ignore the structured PRP format - it's battle-tested
-- L Don't create new patterns when existing templates work
-- L Don't hardcode values that should be config
-- L Don't catch all exceptions - be specific
-
-## Working with This Framework
-
-### When Creating new PRPs
-
-1. **Context Process**: New PRPs must consist of context sections, Context is King!
-2.
-
-### When Executing PRPs
-
-1. **Load PRP**: Read and understand all context and requirements
-2. **ULTRATHINK**: Create comprehensive plan, break down into todos, use subagents, batch tool etc check claude/ai_docs/
-3. **Execute**: Implement following the blueprint
-4. **Validate**: Run each validation command, fix failures
-5. **Complete**: Ensure all checklist items done
-
-### Command Usage
-
-- Read the .claude/commands directory
-- Access via `/` prefix in Claude Code
-- Commands are self-documenting with argument placeholders
-- Use parallel creation commands for rapid development
-- Leverage existing review and refactoring commands
-
-## Project Structure Understanding
+## Project Structure
 
 ```
-PRPs-agentic-eng/
-.claude/
-  commands/           # 15+ Claude Code commands
-  settings.local.json # Tool permissions
-claude/
-  PRPs/
-    templates/          # PRP templates with validation
-  scripts/           # PRP runner and utilities
-  ai_docs/           # Curated Claude Code documentation
-   *.md               # Active and example PRPs
-  library/        # Framework-specific CLAUDE.md examples
+note/
+├── main.go                    # Main application code
+├── main_test.go              # Unit tests
+├── go.mod                    # Go module definition
+├── Makefile                  # Build automation
+├── README.md                 # User documentation
+├── SETUP.md                  # Setup instructions
+├── integration_test.sh       # E2E tests
+├── completion_test.sh        # Tab completion tests
+├── setup_integration_test.sh # Test setup script
+├── docs/                     # Documentation
+│   └── note-cli-prd.md      # Product requirements
+└── .claude/                  # Claude Code configuration
+    ├── commands/             # Claude commands for development
+    └── settings.local.json   # Tool permissions
 ```
 
-Remember: This framework is about **one-pass implementation success through comprehensive context and validation**. Every PRP should contain the exact context for an AI agent to successfully implement working code in a single pass.
+## Development Guidelines
+
+### Code Patterns
+
+- Single-file architecture in `main.go`
+- Struct-based configuration (`Config` type)
+- ANSI color codes for terminal highlighting
+- Comprehensive error handling
+- File operations use `filepath` package for cross-platform compatibility
+
+### Testing Strategy
+
+- Unit tests in `main_test.go` cover core functions
+- Integration tests simulate full user workflows
+- Completion tests verify bash autocomplete functionality
+- All tests designed to work in isolated environments
+
+### Key Functions to Understand
+
+- `setupNote()` - First-time configuration
+- `listNotes()` - List/search notes functionality
+- `archiveNote()` - Archive (soft delete) functionality
+- `openNote()` - Open existing or create new notes
+- `highlightSearchTerms()` - Terminal highlighting for search results
+
+Remember: This is a focused CLI tool following Unix philosophy. Keep changes minimal, well-tested, and true to the simple note-taking workflow.

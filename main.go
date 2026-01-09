@@ -124,7 +124,8 @@ func main() {
 	// Handle config
 	if *configFlag {
 		runSetup()
-		return
+		// Explicitly exit after config to prevent any further execution
+		os.Exit(0)
 	}
 
 	// Handle autocomplete setup

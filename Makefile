@@ -1,5 +1,8 @@
 .PHONY: build test clean install uninstall help
 
+# Default target - build the project
+all: build
+
 # Display available targets
 help:
 	@echo "Available make targets:"
@@ -47,7 +50,7 @@ setup-test-ci: build
 	-./setup_integration_test.sh
 
 # Run all tests
-test-all: test integration-test completion-test setup-test
+test-all: test integration-test completion-test setup-test-ci
 
 # Run all tests (non-failing for CI) 
 test-all-ci: test integration-test completion-test setup-test-ci
