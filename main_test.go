@@ -11,7 +11,7 @@ import (
 
 func TestExpandPath(t *testing.T) {
 	homeDir, _ := os.UserHomeDir()
-	
+
 	tests := []struct {
 		input    string
 		expected string
@@ -20,7 +20,7 @@ func TestExpandPath(t *testing.T) {
 		{"/absolute/path", "/absolute/path"},
 		{"relative/path", "relative/path"},
 	}
-	
+
 	for _, test := range tests {
 		result := expandPath(test.input)
 		if result != test.expected {
@@ -36,19 +36,19 @@ func TestExpandPathWithSymlinks(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(tempDir)
-	
+
 	// Create real directory
 	realDir := filepath.Join(tempDir, "real-notes")
 	if err := os.MkdirAll(realDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	// Create symbolic link
 	symlinkDir := filepath.Join(tempDir, "symlink-notes")
 	if err := os.Symlink(realDir, symlinkDir); err != nil {
 		t.Skip("Skipping symlink test: symlink creation failed (might not be supported)")
 	}
-	
+
 	tests := []struct {
 		name     string
 		input    string
@@ -70,7 +70,7 @@ func TestExpandPathWithSymlinks(t *testing.T) {
 			expected: filepath.Join(tempDir, "non-existent"), // Should return original if can't resolve
 		},
 	}
-	
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			result := expandPath(test.input)
@@ -88,7 +88,7 @@ func TestFindMatchingNotes(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(tempDir)
-	
+
 	// Create test files
 	testFiles := []string{
 		"meeting-20240101.md",
@@ -97,7 +97,7 @@ func TestFindMatchingNotes(t *testing.T) {
 		"meeting-20240104.md",
 		"readme.txt", // Should be ignored
 	}
-	
+
 	for _, file := range testFiles {
 		f, err := os.Create(filepath.Join(tempDir, file))
 		if err != nil {
@@ -105,19 +105,19 @@ func TestFindMatchingNotes(t *testing.T) {
 		}
 		f.Close()
 	}
-	
+
 	// Test finding all notes
 	notes := findMatchingNotes(tempDir, "", false)
 	if len(notes) != 4 { // Should ignore .txt file
 		t.Errorf("Expected 4 notes, got %d", len(notes))
 	}
-	
+
 	// Test pattern matching
 	notes = findMatchingNotes(tempDir, "meeting", false)
 	if len(notes) != 2 {
 		t.Errorf("Expected 2 meeting notes, got %d", len(notes))
 	}
-	
+
 	// Verify correct files were found
 	for _, note := range notes {
 		if !strings.Contains(note, "meeting") {
@@ -131,10 +131,10 @@ func TestGenerateFilename(t *testing.T) {
 	today := time.Now().Format("20060102")
 	noteName := "test-note"
 	expected := noteName + "-" + today + ".md"
-	
+
 	// This would be part of openOrCreateNote logic
 	filename := noteName + "-" + today + ".md"
-	
+
 	if filename != expected {
 		t.Errorf("Generated filename %s does not match expected %s", filename, expected)
 	}
@@ -147,13 +147,13 @@ func TestConfigSaveAndLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.Remove(tempFile.Name())
-	
+
 	// Test config structure (would need refactoring to test properly)
 	testConfig := Config{
 		Editor:   "vim",
 		NotesDir: "/home/user/Notes",
 	}
-	
+
 	// Verify config has expected fields
 	if testConfig.Editor != "vim" {
 		t.Errorf("Editor not set correctly")
@@ -170,29 +170,29 @@ func TestCopyFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.Remove(srcFile.Name())
-	
+
 	// Write test content
 	testContent := "This is a test note"
 	if _, err := srcFile.WriteString(testContent); err != nil {
 		t.Fatal(err)
 	}
 	srcFile.Close()
-	
+
 	// Create destination path
 	dstFile := srcFile.Name() + ".copy"
 	defer os.Remove(dstFile)
-	
+
 	// Test copy
 	if err := copyFile(srcFile.Name(), dstFile); err != nil {
 		t.Errorf("copyFile failed: %v", err)
 	}
-	
+
 	// Verify content
 	content, err := os.ReadFile(dstFile)
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	if string(content) != testContent {
 		t.Errorf("Copied content does not match: got %s, want %s", content, testContent)
 	}
@@ -209,23 +209,23 @@ func TestSpacesInNoteNames(t *testing.T) {
 		{[]string{"single"}, "single"},
 		{[]string{"project", "ideas", "for", "2024"}, "project_ideas_for_2024"},
 	}
-	
+
 	for _, test := range tests {
 		// Simulate the argument joining logic from main()
 		noteName := strings.Join(test.input, " ")
-		
+
 		// Apply the space-to-underscore conversion from openOrCreateNote()
 		cleanNoteName := strings.ReplaceAll(noteName, " ", "_")
-		
+
 		if cleanNoteName != test.expected {
 			t.Errorf("For args %v: got %s, want %s", test.input, cleanNoteName, test.expected)
 		}
-		
+
 		// Also test that the full filename generation works correctly
 		today := time.Now().Format("20060102")
 		expectedFilename := test.expected + "-" + today + ".md"
 		actualFilename := cleanNoteName + "-" + today + ".md"
-		
+
 		if actualFilename != expectedFilename {
 			t.Errorf("Filename generation failed for args %v: got %s, want %s", test.input, actualFilename, expectedFilename)
 		}
@@ -246,12 +246,12 @@ func TestHighlightTerm(t *testing.T) {
 		{"", "search", ""},
 		{"no-match.md", "xyz", "no-match.md"},
 	}
-	
+
 	for _, test := range tests {
 		// Since we can't easily mock isOutputToTerminal() in unit tests,
 		// we'll test the core logic of finding and replacing terms
 		result := highlightTerm(test.text, test.term)
-		
+
 		// For terminal output, result should contain color codes
 		// For non-terminal (like in tests), it should be unchanged
 		if test.term == "" || test.text == "" {
@@ -280,11 +280,11 @@ func TestHighlightTermPanicRegression(t *testing.T) {
 		// Additional edge cases
 		{"test-life-and-life-again.txt", "life"},
 		{"abc-abc-abc.md", "abc"},
-		{"short", "short"},  // Term same length as text
-		{"ab", "abc"},       // Term longer than text
+		{"short", "short"},     // Term same length as text
+		{"ab", "abc"},          // Term longer than text
 		{"a-a-a-a-a.txt", "a"}, // Many small matches
 	}
-	
+
 	for _, test := range problematicCases {
 		// The main test is that this doesn't panic
 		func() {
@@ -293,9 +293,9 @@ func TestHighlightTermPanicRegression(t *testing.T) {
 					t.Errorf("highlightTerm(%q, %q) panicked: %v", test.text, test.term, r)
 				}
 			}()
-			
+
 			result := highlightTerm(test.text, test.term)
-			
+
 			// Basic sanity check: result should not be shorter than original text
 			// (unless we couldn't do highlighting due to test environment)
 			if len(result) < len(test.text) {
@@ -309,13 +309,13 @@ func TestIsOutputToTerminal(t *testing.T) {
 	// Test terminal detection
 	// In test environment, this should typically return false
 	result := isOutputToTerminal()
-	
+
 	// We can't predict the exact value, but the function should not panic
 	// and should return a boolean
 	if result != true && result != false {
 		t.Error("isOutputToTerminal() should return a boolean value")
 	}
-	
+
 	// In CI/test environments, this is typically false
 	// We'll just verify it runs without error
 }
@@ -327,42 +327,42 @@ func TestAreAliasesAlreadySetup(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(tempDir)
-	
+
 	// Save original HOME
 	originalHome := os.Getenv("HOME")
 	defer os.Setenv("HOME", originalHome)
-	
+
 	// Set temporary HOME
 	os.Setenv("HOME", tempDir)
-	
+
 	// Test with no shell config files
 	result := areAliasesAlreadySetup()
 	if result {
 		t.Error("Should return false when no config files exist")
 	}
-	
+
 	// Test with bash config file without aliases
 	bashrcPath := filepath.Join(tempDir, ".bashrc")
 	if err := os.WriteFile(bashrcPath, []byte("# Some other config\nexport PATH=$PATH:/usr/bin\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	// Mock shell detection to return bash
 	originalShell := os.Getenv("SHELL")
 	os.Setenv("SHELL", "/bin/bash")
 	defer os.Setenv("SHELL", originalShell)
-	
+
 	result = areAliasesAlreadySetup()
 	if result {
 		t.Error("Should return false when aliases don't exist in bashrc")
 	}
-	
+
 	// Test with bash config file with aliases
 	aliasContent := "# Some other config\nexport PATH=$PATH:/usr/bin\n# note command aliases\nalias n='/usr/bin/note'\nalias nls='/usr/bin/note -l'\nalias nrm='/usr/bin/note -rm'\n"
 	if err := os.WriteFile(bashrcPath, []byte(aliasContent), 0644); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	result = areAliasesAlreadySetup()
 	if !result {
 		t.Error("Should return true when aliases exist in bashrc")
@@ -372,18 +372,18 @@ func TestAreAliasesAlreadySetup(t *testing.T) {
 func TestSetupAliasesPath(t *testing.T) {
 	// Test path detection logic used in alias setup
 	// This tests the os.Executable and exec.LookPath fallback
-	
+
 	// Test executable path detection
 	execPath, err := os.Executable()
 	if err != nil {
 		t.Logf("os.Executable() failed: %v, testing fallback", err)
-		
+
 		// Test PATH lookup fallback
 		notePath, err := exec.LookPath("note")
 		if err != nil {
 			t.Skip("note command not found in PATH, skipping path test")
 		}
-		
+
 		if notePath == "" {
 			t.Error("exec.LookPath should return non-empty path")
 		}
@@ -401,46 +401,46 @@ func TestGetArchiveDir(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(tempDir)
-	
+
 	notesDir := filepath.Join(tempDir, "Notes")
 	if err := os.MkdirAll(notesDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	// Test 1: No archive directory exists - should return Archive (capital)
 	result := getArchiveDir(notesDir)
 	expected := filepath.Join(notesDir, "Archive")
 	if result != expected {
 		t.Errorf("No archive exists: expected %s, got %s", expected, result)
 	}
-	
+
 	// Test 2: Only lowercase archive exists - should return archive
 	archiveLower := filepath.Join(notesDir, "archive")
 	if err := os.MkdirAll(archiveLower, 0755); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	result = getArchiveDir(notesDir)
 	if result != archiveLower {
 		t.Errorf("Only lowercase exists: expected %s, got %s", archiveLower, result)
 	}
-	
+
 	// Test 3: Both Archive and archive exist - should prefer Archive (capital)
 	archiveUpper := filepath.Join(notesDir, "Archive")
 	if err := os.MkdirAll(archiveUpper, 0755); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	result = getArchiveDir(notesDir)
 	if result != archiveUpper {
 		t.Errorf("Both exist: expected %s (capital), got %s", archiveUpper, result)
 	}
-	
+
 	// Test 4: Only Archive (capital) exists - should return Archive
 	if err := os.RemoveAll(archiveLower); err != nil {
 		t.Fatal(err)
 	}
-	
+
 	result = getArchiveDir(notesDir)
 	if result != archiveUpper {
 		t.Errorf("Only capital exists: expected %s, got %s", archiveUpper, result)
@@ -449,87 +449,87 @@ func TestGetArchiveDir(t *testing.T) {
 
 func TestParseFlags(t *testing.T) {
 	tests := []struct {
-		name     string
-		args     []string
-		expected *ParsedFlags
+		name      string
+		args      []string
+		expected  *ParsedFlags
 		remaining []string
 	}{
 		{
-			name: "No flags",
-			args: []string{"note-name"},
-			expected: &ParsedFlags{},
+			name:      "No flags",
+			args:      []string{"note-name"},
+			expected:  &ParsedFlags{},
 			remaining: []string{"note-name"},
 		},
 		{
-			name: "Simple list flag",
-			args: []string{"-l"},
-			expected: &ParsedFlags{List: true},
+			name:      "Simple list flag",
+			args:      []string{"-l"},
+			expected:  &ParsedFlags{List: true},
 			remaining: []string{},
 		},
 		{
-			name: "List with pattern",
-			args: []string{"-l", "pattern"},
-			expected: &ParsedFlags{List: true},
+			name:      "List with pattern",
+			args:      []string{"-l", "pattern"},
+			expected:  &ParsedFlags{List: true},
 			remaining: []string{"pattern"},
 		},
 		{
-			name: "Archive flag",
-			args: []string{"-a"},
-			expected: &ParsedFlags{Archive: true},
+			name:      "Archive flag",
+			args:      []string{"-a"},
+			expected:  &ParsedFlags{Archive: true},
 			remaining: []string{},
 		},
 		{
-			name: "Search flag",
-			args: []string{"-s", "search-term"},
-			expected: &ParsedFlags{Search: "search-term"},
+			name:      "Search flag",
+			args:      []string{"-s", "search-term"},
+			expected:  &ParsedFlags{Search: "search-term"},
 			remaining: []string{},
 		},
 		{
-			name: "Delete flag",
-			args: []string{"-d", "pattern"},
-			expected: &ParsedFlags{Delete: "pattern"},
+			name:      "Delete flag",
+			args:      []string{"-d", "pattern"},
+			expected:  &ParsedFlags{Delete: "pattern"},
 			remaining: []string{},
 		},
 		{
-			name: "Help flag short",
-			args: []string{"-h"},
-			expected: &ParsedFlags{Help: true},
+			name:      "Help flag short",
+			args:      []string{"-h"},
+			expected:  &ParsedFlags{Help: true},
 			remaining: []string{},
 		},
 		{
-			name: "Help flag long",
-			args: []string{"--help"},
-			expected: &ParsedFlags{Help: true},
+			name:      "Help flag long",
+			args:      []string{"--help"},
+			expected:  &ParsedFlags{Help: true},
 			remaining: []string{},
 		},
 		{
-			name: "Config flag",
-			args: []string{"--config"},
-			expected: &ParsedFlags{Config: true},
+			name:      "Config flag",
+			args:      []string{"--config"},
+			expected:  &ParsedFlags{Config: true},
 			remaining: []string{},
 		},
 		{
-			name: "Autocomplete flag",
-			args: []string{"--autocomplete"},
-			expected: &ParsedFlags{Autocomplete: true},
+			name:      "Autocomplete flag",
+			args:      []string{"--autocomplete"},
+			expected:  &ParsedFlags{Autocomplete: true},
 			remaining: []string{},
 		},
 		{
-			name: "Alias flag",
-			args: []string{"--alias"},
-			expected: &ParsedFlags{Alias: true},
+			name:      "Alias flag",
+			args:      []string{"--alias"},
+			expected:  &ParsedFlags{Alias: true},
 			remaining: []string{},
 		},
 		{
-			name: "Version flag short",
-			args: []string{"-v"},
-			expected: &ParsedFlags{Version: true},
+			name:      "Version flag short",
+			args:      []string{"-v"},
+			expected:  &ParsedFlags{Version: true},
 			remaining: []string{},
 		},
 		{
-			name: "Version flag long",
-			args: []string{"--version"},
-			expected: &ParsedFlags{Version: true},
+			name:      "Version flag long",
+			args:      []string{"--version"},
+			expected:  &ParsedFlags{Version: true},
 			remaining: []string{},
 		},
 	}
@@ -537,7 +537,7 @@ func TestParseFlags(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			flags, remaining := parseFlags(test.args)
-			
+
 			// Check each flag field
 			if flags.List != test.expected.List {
 				t.Errorf("List: got %v, want %v", flags.List, test.expected.List)
@@ -566,7 +566,7 @@ func TestParseFlags(t *testing.T) {
 			if flags.Version != test.expected.Version {
 				t.Errorf("Version: got %v, want %v", flags.Version, test.expected.Version)
 			}
-			
+
 			// Check remaining arguments
 			if len(remaining) != len(test.remaining) {
 				t.Errorf("Remaining args length: got %d, want %d", len(remaining), len(test.remaining))
@@ -583,75 +583,75 @@ func TestParseFlags(t *testing.T) {
 
 func TestParseFlagsChaining(t *testing.T) {
 	tests := []struct {
-		name     string
-		args     []string
-		expected *ParsedFlags
+		name      string
+		args      []string
+		expected  *ParsedFlags
 		remaining []string
 	}{
 		{
-			name: "Archive and List chained (-al)",
-			args: []string{"-al"},
-			expected: &ParsedFlags{Archive: true, List: true},
+			name:      "Archive and List chained (-al)",
+			args:      []string{"-al"},
+			expected:  &ParsedFlags{Archive: true, List: true},
 			remaining: []string{},
 		},
 		{
-			name: "List and Archive chained (-la)",
-			args: []string{"-la"},
-			expected: &ParsedFlags{List: true, Archive: true},
+			name:      "List and Archive chained (-la)",
+			args:      []string{"-la"},
+			expected:  &ParsedFlags{List: true, Archive: true},
 			remaining: []string{},
 		},
 		{
-			name: "Archive and Search chained (-as)",
-			args: []string{"-as", "search-term"},
-			expected: &ParsedFlags{Archive: true, Search: "search-term"},
+			name:      "Archive and Search chained (-as)",
+			args:      []string{"-as", "search-term"},
+			expected:  &ParsedFlags{Archive: true, Search: "search-term"},
 			remaining: []string{},
 		},
 		{
-			name: "Help and List chained (-hl)",
-			args: []string{"-hl"},
-			expected: &ParsedFlags{Help: true, List: true},
+			name:      "Help and List chained (-hl)",
+			args:      []string{"-hl"},
+			expected:  &ParsedFlags{Help: true, List: true},
 			remaining: []string{},
 		},
 		{
-			name: "Archive, List with pattern (-al pattern)",
-			args: []string{"-al", "project"},
-			expected: &ParsedFlags{Archive: true, List: true},
+			name:      "Archive, List with pattern (-al pattern)",
+			args:      []string{"-al", "project"},
+			expected:  &ParsedFlags{Archive: true, List: true},
 			remaining: []string{"project"},
 		},
 		{
-			name: "Archive, Search with term (-as term)",
-			args: []string{"-as", "todo"},
-			expected: &ParsedFlags{Archive: true, Search: "todo"},
+			name:      "Archive, Search with term (-as term)",
+			args:      []string{"-as", "todo"},
+			expected:  &ParsedFlags{Archive: true, Search: "todo"},
 			remaining: []string{},
 		},
 		{
-			name: "List, Archive, Help chained (-lah)",
-			args: []string{"-lah"},
-			expected: &ParsedFlags{List: true, Archive: true, Help: true},
+			name:      "List, Archive, Help chained (-lah)",
+			args:      []string{"-lah"},
+			expected:  &ParsedFlags{List: true, Archive: true, Help: true},
 			remaining: []string{},
 		},
 		{
-			name: "Archive and Delete chained (-ad)",
-			args: []string{"-ad", "old-*"},
-			expected: &ParsedFlags{Archive: true, Delete: "old-*"},
+			name:      "Archive and Delete chained (-ad)",
+			args:      []string{"-ad", "old-*"},
+			expected:  &ParsedFlags{Archive: true, Delete: "old-*"},
 			remaining: []string{},
 		},
 		{
-			name: "Complex chain with remaining args",
-			args: []string{"-la", "project", "notes"},
-			expected: &ParsedFlags{List: true, Archive: true},
+			name:      "Complex chain with remaining args",
+			args:      []string{"-la", "project", "notes"},
+			expected:  &ParsedFlags{List: true, Archive: true},
 			remaining: []string{"project", "notes"},
 		},
 		{
-			name: "Version and Help chained (-vh)",
-			args: []string{"-vh"},
-			expected: &ParsedFlags{Version: true, Help: true},
+			name:      "Version and Help chained (-vh)",
+			args:      []string{"-vh"},
+			expected:  &ParsedFlags{Version: true, Help: true},
 			remaining: []string{},
 		},
 		{
-			name: "Version and List chained (-vl)",
-			args: []string{"-vl"},
-			expected: &ParsedFlags{Version: true, List: true},
+			name:      "Version and List chained (-vl)",
+			args:      []string{"-vl"},
+			expected:  &ParsedFlags{Version: true, List: true},
 			remaining: []string{},
 		},
 	}
@@ -659,7 +659,7 @@ func TestParseFlagsChaining(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			flags, remaining := parseFlags(test.args)
-			
+
 			// Check each flag field
 			if flags.List != test.expected.List {
 				t.Errorf("List: got %v, want %v", flags.List, test.expected.List)
@@ -679,7 +679,7 @@ func TestParseFlagsChaining(t *testing.T) {
 			if flags.Version != test.expected.Version {
 				t.Errorf("Version: got %v, want %v", flags.Version, test.expected.Version)
 			}
-			
+
 			// Check remaining arguments
 			if len(remaining) != len(test.remaining) {
 				t.Errorf("Remaining args length: got %d, want %d", len(remaining), len(test.remaining))
@@ -697,40 +697,40 @@ func TestParseFlagsChaining(t *testing.T) {
 func TestParseFlagsErrorCases(t *testing.T) {
 	// Test cases that should cause the program to exit with an error
 	// We'll capture stderr to verify error messages are shown
-	
+
 	errorTests := []struct {
 		name     string
 		args     []string
 		errorMsg string
 	}{
 		{
-			name: "Search flag without argument",
-			args: []string{"-s"},
+			name:     "Search flag without argument",
+			args:     []string{"-s"},
 			errorMsg: "Error: -s flag requires a search term",
 		},
 		{
-			name: "Delete flag without argument", 
-			args: []string{"-d"},
+			name:     "Delete flag without argument",
+			args:     []string{"-d"},
 			errorMsg: "Error: -d flag requires a pattern",
 		},
 		{
-			name: "Search in middle of chain",
-			args: []string{"-asl"}, // -s must be last
+			name:     "Search in middle of chain",
+			args:     []string{"-asl"}, // -s must be last
 			errorMsg: "Error: -s flag must be the last in a flag chain",
 		},
 		{
-			name: "Delete in middle of chain",
-			args: []string{"-adl"}, // -d must be last
+			name:     "Delete in middle of chain",
+			args:     []string{"-adl"}, // -d must be last
 			errorMsg: "Error: -d flag must be the last in a flag chain",
 		},
 		{
-			name: "Unknown flag",
-			args: []string{"-x"},
+			name:     "Unknown flag",
+			args:     []string{"-x"},
 			errorMsg: "Error: unknown flag -x",
 		},
 		{
-			name: "Unknown flag in chain",
-			args: []string{"-lax"}, // -x is unknown
+			name:     "Unknown flag in chain",
+			args:     []string{"-lax"}, // -x is unknown
 			errorMsg: "Error: unknown flag -x",
 		},
 	}
@@ -740,13 +740,13 @@ func TestParseFlagsErrorCases(t *testing.T) {
 			// Test that these cases would trigger os.Exit(1)
 			// Since we can't easily test os.Exit in unit tests, we'll test that
 			// the parseFlags function handles these cases appropriately
-			
+
 			// For this test, we expect the function to handle errors gracefully
 			// In a real scenario, these would cause os.Exit(1)
-			
+
 			// Since parseFlags calls os.Exit(1) on errors, we can't directly test this
 			// But we can verify the logic by checking the error conditions manually
-			
+
 			switch test.name {
 			case "Search flag without argument":
 				if len(test.args) == 1 && test.args[0] == "-s" {
@@ -770,69 +770,69 @@ func TestParseFlagsErrorCases(t *testing.T) {
 
 func TestParseFlagsEdgeCases(t *testing.T) {
 	tests := []struct {
-		name     string
-		args     []string
-		expected *ParsedFlags
+		name      string
+		args      []string
+		expected  *ParsedFlags
 		remaining []string
 	}{
 		{
-			name: "Empty args",
-			args: []string{},
-			expected: &ParsedFlags{},
+			name:      "Empty args",
+			args:      []string{},
+			expected:  &ParsedFlags{},
 			remaining: []string{},
 		},
 		{
-			name: "Just dash",
-			args: []string{"-"},
-			expected: &ParsedFlags{},
+			name:      "Just dash",
+			args:      []string{"-"},
+			expected:  &ParsedFlags{},
 			remaining: []string{"-"},
 		},
 		{
-			name: "Double dash only",
-			args: []string{"--"},
-			expected: &ParsedFlags{},
+			name:      "Double dash only",
+			args:      []string{"--"},
+			expected:  &ParsedFlags{},
 			remaining: []string{"--"},
 		},
 		{
-			name: "Unknown long flag",
-			args: []string{"--unknown"},
-			expected: &ParsedFlags{},
+			name:      "Unknown long flag",
+			args:      []string{"--unknown"},
+			expected:  &ParsedFlags{},
 			remaining: []string{"--unknown"},
 		},
 		{
-			name: "Mixed valid and unknown long flags",
-			args: []string{"--config", "--unknown", "--help"},
-			expected: &ParsedFlags{Config: true, Help: true},
+			name:      "Mixed valid and unknown long flags",
+			args:      []string{"--config", "--unknown", "--help"},
+			expected:  &ParsedFlags{Config: true, Help: true},
 			remaining: []string{"--unknown"},
 		},
 		{
-			name: "Search with empty string",
-			args: []string{"-s", ""},
-			expected: &ParsedFlags{Search: ""},
+			name:      "Search with empty string",
+			args:      []string{"-s", ""},
+			expected:  &ParsedFlags{Search: ""},
 			remaining: []string{},
 		},
 		{
-			name: "Delete with empty string",
-			args: []string{"-d", ""},
-			expected: &ParsedFlags{Delete: ""},
+			name:      "Delete with empty string",
+			args:      []string{"-d", ""},
+			expected:  &ParsedFlags{Delete: ""},
 			remaining: []string{},
 		},
 		{
-			name: "Multiple separate flags",
-			args: []string{"-l", "-a", "-h"},
-			expected: &ParsedFlags{List: true, Archive: true, Help: true},
+			name:      "Multiple separate flags",
+			args:      []string{"-l", "-a", "-h"},
+			expected:  &ParsedFlags{List: true, Archive: true, Help: true},
 			remaining: []string{},
 		},
 		{
-			name: "Mix of short and long flags",
-			args: []string{"-l", "--config", "-a", "--help"},
-			expected: &ParsedFlags{List: true, Config: true, Archive: true, Help: true},
+			name:      "Mix of short and long flags",
+			args:      []string{"-l", "--config", "-a", "--help"},
+			expected:  &ParsedFlags{List: true, Config: true, Archive: true, Help: true},
 			remaining: []string{},
 		},
 		{
-			name: "Mix with version flags",
-			args: []string{"-v", "--config", "--version"},
-			expected: &ParsedFlags{Version: true, Config: true},
+			name:      "Mix with version flags",
+			args:      []string{"-v", "--config", "--version"},
+			expected:  &ParsedFlags{Version: true, Config: true},
 			remaining: []string{},
 		},
 	}
@@ -840,7 +840,7 @@ func TestParseFlagsEdgeCases(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			flags, remaining := parseFlags(test.args)
-			
+
 			// Check each flag field
 			if flags.List != test.expected.List {
 				t.Errorf("List: got %v, want %v", flags.List, test.expected.List)
@@ -869,7 +869,7 @@ func TestParseFlagsEdgeCases(t *testing.T) {
 			if flags.Version != test.expected.Version {
 				t.Errorf("Version: got %v, want %v", flags.Version, test.expected.Version)
 			}
-			
+
 			// Check remaining arguments
 			if len(remaining) != len(test.remaining) {
 				t.Errorf("Remaining args length: got %d, want %d", len(remaining), len(test.remaining))

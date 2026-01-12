@@ -36,7 +36,7 @@ func SetupCompletion(reader *bufio.Reader) {
 	fmt.Print("Would you like to set up command line completion for note? (y/N): ")
 	response, _ := reader.ReadString('\n')
 	response = strings.ToLower(strings.TrimSpace(response))
-	
+
 	if response != "y" && response != "yes" {
 		fmt.Println("Skipping completion setup. You can run 'note --config' later to set it up.")
 		return
@@ -114,8 +114,8 @@ func CheckFileForCompletionSource(filePath string) bool {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if (strings.Contains(line, "~/.note.bash") || strings.Contains(line, "~/.note.zsh")) &&
-		   (strings.Contains(line, "source") || strings.Contains(line, ".")) ||
-		   (strings.Contains(line, "note") && (strings.Contains(line, "complete") || strings.Contains(line, "completion"))) {
+			(strings.Contains(line, "source") || strings.Contains(line, ".")) ||
+			(strings.Contains(line, "note") && (strings.Contains(line, "complete") || strings.Contains(line, "completion"))) {
 			return true
 		}
 	}
@@ -194,7 +194,7 @@ complete -F _note_complete note
 	// Add source line to .bashrc
 	bashrc := filepath.Join(homeDir, ".bashrc")
 	sourceLine := fmt.Sprintf("\n# note command completion\nsource ~/.note.bash\n")
-	
+
 	file, err := os.OpenFile(bashrc, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error opening .bashrc: %v\n", err)
@@ -286,7 +286,7 @@ compdef _note_complete note
 	// Add source line to .zshrc
 	zshrcPath := filepath.Join(homeDir, ".zshrc")
 	sourceLine := fmt.Sprintf("\n# note command completion\nautoload -U +X compinit && compinit\nsource %s\n", completionScriptPath)
-	
+
 	file, err := os.OpenFile(zshrcPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error opening .zshrc: %v\n", err)
@@ -351,7 +351,7 @@ complete -c note -n '__fish_is_first_token' -a '(if test -f ~/.note; set notesdi
 // RunAutocompleteSetup handles the main autocomplete setup flow
 func RunAutocompleteSetup() {
 	reader := bufio.NewReader(os.Stdin)
-	
+
 	fmt.Println("note - Command Line Autocompletion Setup")
 	fmt.Println()
 	fmt.Println("This will set up tab completion for the note command, allowing you to:")
@@ -360,10 +360,10 @@ func RunAutocompleteSetup() {
 	fmt.Println("• Get context-aware completions")
 	fmt.Println()
 	fmt.Print("Would you like to set up autocompletion? (y/N): ")
-	
+
 	response, _ := reader.ReadString('\n')
 	response = strings.ToLower(strings.TrimSpace(response))
-	
+
 	if response != "y" && response != "yes" {
 		fmt.Println("Autocompletion setup cancelled.")
 		return
@@ -400,7 +400,7 @@ func RunAutocompleteSetup() {
 	fmt.Println()
 	fmt.Println("✓ Autocompletion setup complete!")
 	fmt.Println("  To activate, run one of:")
-	
+
 	homeDir, _ := os.UserHomeDir()
 	switch shell {
 	case "bash":
@@ -427,20 +427,20 @@ func CleanupExistingCompletion(shell string) {
 		// Remove existing .note.bash file
 		bashCompletionFile := filepath.Join(homeDir, ".note.bash")
 		os.Remove(bashCompletionFile)
-		
+
 		// Clean up shell config files
 		cleanupShellConfig(filepath.Join(homeDir, ".bashrc"))
 		cleanupShellConfig(filepath.Join(homeDir, ".bash_profile"))
 		cleanupShellConfig(filepath.Join(homeDir, ".profile"))
-		
+
 	case "zsh":
 		// Remove existing .note.zsh file
 		zshCompletionFile := filepath.Join(homeDir, ".note.zsh")
 		os.Remove(zshCompletionFile)
-		
+
 		// Clean up .zshrc
 		cleanupShellConfig(filepath.Join(homeDir, ".zshrc"))
-		
+
 	case "fish":
 		// Remove existing fish completion file
 		fishCompletionDir := filepath.Join(homeDir, ".config", "fish", "completions")
@@ -461,28 +461,28 @@ func cleanupShellConfig(configFile string) {
 	var lines []string
 	scanner := bufio.NewScanner(file)
 	skipNext := false
-	
+
 	for scanner.Scan() {
 		line := scanner.Text()
-		
+
 		// Skip lines that contain note completion references
 		if strings.Contains(line, "# note command completion") {
 			skipNext = true
 			continue
 		}
-		
-		if skipNext && (strings.Contains(line, ".note.bash") || 
-			strings.Contains(line, ".note.zsh") || 
+
+		if skipNext && (strings.Contains(line, ".note.bash") ||
+			strings.Contains(line, ".note.zsh") ||
 			strings.Contains(line, "completions/bash/note") ||
 			(strings.Contains(line, "note") && strings.Contains(line, "source"))) {
 			skipNext = false
 			continue
 		}
-		
+
 		if skipNext && strings.TrimSpace(line) == "" {
 			continue
 		}
-		
+
 		skipNext = false
 		lines = append(lines, line)
 	}
@@ -508,7 +508,7 @@ func detectShell() string {
 
 	// Extract shell name from path
 	shellName := filepath.Base(shell)
-	
+
 	// Map common shell variants
 	switch shellName {
 	case "bash":

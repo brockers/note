@@ -60,11 +60,11 @@ func highlightTerm(text, term string) string {
 	if term == "" || !isOutputToTerminal() {
 		return text
 	}
-	
+
 	// Case-insensitive highlighting
 	lowerText := strings.ToLower(text)
 	lowerTerm := strings.ToLower(term)
-	
+
 	// Find all occurrences and highlight them
 	result := text
 	startPos := 0
@@ -73,28 +73,28 @@ func highlightTerm(text, term string) string {
 		if pos == -1 {
 			break
 		}
-		
+
 		actualPos := startPos + pos
-		
+
 		// Bounds checking to prevent panic
 		if actualPos+len(term) > len(result) {
 			break
 		}
-		
+
 		// Preserve original case in the highlight
 		originalTerm := result[actualPos : actualPos+len(term)]
 		highlighted := ColorRed + originalTerm + ColorReset
-		
+
 		result = result[:actualPos] + highlighted + result[actualPos+len(term):]
-		
+
 		// Adjust positions accounting for added color codes
 		colorCodeLength := len(ColorRed) + len(ColorReset)
 		startPos = actualPos + len(term) + colorCodeLength
-		
+
 		// Update lowerText to match result changes
 		lowerText = strings.ToLower(result)
 	}
-	
+
 	return result
 }
 
@@ -366,7 +366,6 @@ func saveConfig(config Config) {
 	fmt.Fprintf(file, "notesdir=%s\n", notesDir)
 }
 
-
 func setupAliases(reader *bufio.Reader) {
 	// Check if aliases are already set up
 	if areAliasesAlreadySetup() {
@@ -377,7 +376,7 @@ func setupAliases(reader *bufio.Reader) {
 	fmt.Print("Would you like to set up shell aliases (n -> note, nls -> note -l, nrm -> note -d)? (y/N): ")
 	response, _ := reader.ReadString('\n')
 	response = strings.ToLower(strings.TrimSpace(response))
-	
+
 	if response != "y" && response != "yes" {
 		fmt.Println("Skipping alias setup. You can run 'note --config' later to set them up.")
 		return
@@ -439,7 +438,7 @@ func setupBashAliases() {
 	}
 
 	bashrcPath := filepath.Join(homeDir, ".bashrc")
-	
+
 	// Get the full path to the note binary
 	notePath, err := os.Executable()
 	if err != nil {
@@ -479,7 +478,7 @@ func setupZshAliases() {
 	}
 
 	zshrcPath := filepath.Join(homeDir, ".zshrc")
-	
+
 	// Get the full path to the note binary
 	notePath, err := os.Executable()
 	if err != nil {
@@ -526,7 +525,7 @@ func setupFishAliases() {
 	}
 
 	fishConfigPath := filepath.Join(fishConfigDir, "config.fish")
-	
+
 	// Get the full path to the note binary
 	notePath, err := os.Executable()
 	if err != nil {
@@ -564,7 +563,7 @@ func expandPath(path string) string {
 		homeDir, _ := os.UserHomeDir()
 		path = filepath.Join(homeDir, path[2:])
 	}
-	
+
 	// Resolve symbolic links to get the actual path
 	resolvedPath, err := filepath.EvalSymlinks(path)
 	if err != nil {
@@ -572,7 +571,7 @@ func expandPath(path string) string {
 		// This handles cases where the path doesn't exist yet or other errors
 		return path
 	}
-	
+
 	return resolvedPath
 }
 
@@ -642,13 +641,13 @@ func getArchiveDir(notesDir string) string {
 	if _, err := os.Stat(archiveDir); err == nil {
 		return archiveDir
 	}
-	
+
 	// Check for "archive" (lowercase)
 	archiveDir = filepath.Join(notesDir, "archive")
 	if _, err := os.Stat(archiveDir); err == nil {
 		return archiveDir
 	}
-	
+
 	// Default to "Archive" if neither exists (for new creation)
 	return filepath.Join(notesDir, "Archive")
 }
@@ -802,7 +801,7 @@ func searchNotes(config Config, searchTerm string, includeArchived bool) {
 
 func archiveNotes(config Config, pattern string) {
 	notes := findMatchingNotes(config.NotesDir, pattern, false)
-	
+
 	if len(notes) == 0 {
 		fmt.Printf("No notes found matching '%s'\n", pattern)
 		return
@@ -819,7 +818,7 @@ func archiveNotes(config Config, pattern string) {
 		fmt.Printf("  %s\n", note)
 		srcPath := filepath.Join(config.NotesDir, note)
 		dstPath := filepath.Join(archiveDir, note)
-		
+
 		// Move file
 		if err := os.Rename(srcPath, dstPath); err != nil {
 			// Try copy and delete if rename fails (cross-device)
@@ -849,10 +848,10 @@ type ParsedFlags struct {
 func parseFlags(args []string) (*ParsedFlags, []string) {
 	flags := &ParsedFlags{}
 	var remainingArgs []string
-	
+
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
-		
+
 		if arg == "--help" {
 			flags.Help = true
 		} else if arg == "--version" {
@@ -869,7 +868,7 @@ func parseFlags(args []string) (*ParsedFlags, []string) {
 		} else if strings.HasPrefix(arg, "-") && len(arg) > 1 {
 			// Handle short flags and flag chaining
 			flagChars := arg[1:] // Remove the '-' prefix
-			
+
 			for j, char := range flagChars {
 				switch char {
 				case 'v':
@@ -920,7 +919,7 @@ func parseFlags(args []string) (*ParsedFlags, []string) {
 			remainingArgs = append(remainingArgs, arg)
 		}
 	}
-	
+
 	return flags, remainingArgs
 }
 
@@ -933,15 +932,15 @@ func RunAliasSetup() {
 	fmt.Println("• nls -> note -l")
 	fmt.Println("• nrm -> note -d")
 	fmt.Println()
-	
+
 	// Check if aliases are already set up
 	if areAliasesAlreadySetup() {
 		fmt.Println("Aliases are already set up!")
 		return
 	}
-	
+
 	reader := bufio.NewReader(os.Stdin)
-	
+
 	// Use the existing setupAliases function for the core logic
 	setupAliases(reader)
 }
