@@ -59,7 +59,7 @@ _note_complete_test() {
     if [[ ${COMP_CWORD} -eq 1 ]]; then
         # If user starts typing a dash, offer flags
         if [[ "$cur" == -* ]]; then
-            local flags="-l -s -a -d --config --autocomplete --alias --help -h"
+            local flags="-l -s -a -d -v --config --autocomplete --alias --help --version -h"
             COMPREPLY=($(compgen -W "$flags" -- "${cur}"))
         else
             # Otherwise, prioritize note names
@@ -195,7 +195,9 @@ run_test "Empty input should return all notes" "" 10 ""
 
 # Test flag completion
 run_test "Flag '-l' should match -l flag" "-l" 1 "-l"
+run_test "Flag '-v' should match -v flag" "-v" 1 "-v"
 run_test "Flag '--h' should match --help" "--h" 1 "--help"
+run_test "Flag '--v' should match --version" "--v" 1 "--version"
 run_test "Flag '--a' should match --autocomplete and --alias" "--a" 2 "--a"
 
 # Test completion after flags

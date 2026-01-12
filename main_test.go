@@ -520,6 +520,18 @@ func TestParseFlags(t *testing.T) {
 			expected: &ParsedFlags{Alias: true},
 			remaining: []string{},
 		},
+		{
+			name: "Version flag short",
+			args: []string{"-v"},
+			expected: &ParsedFlags{Version: true},
+			remaining: []string{},
+		},
+		{
+			name: "Version flag long",
+			args: []string{"--version"},
+			expected: &ParsedFlags{Version: true},
+			remaining: []string{},
+		},
 	}
 
 	for _, test := range tests {
@@ -550,6 +562,9 @@ func TestParseFlags(t *testing.T) {
 			}
 			if flags.Help != test.expected.Help {
 				t.Errorf("Help: got %v, want %v", flags.Help, test.expected.Help)
+			}
+			if flags.Version != test.expected.Version {
+				t.Errorf("Version: got %v, want %v", flags.Version, test.expected.Version)
 			}
 			
 			// Check remaining arguments
@@ -627,6 +642,18 @@ func TestParseFlagsChaining(t *testing.T) {
 			expected: &ParsedFlags{List: true, Archive: true},
 			remaining: []string{"project", "notes"},
 		},
+		{
+			name: "Version and Help chained (-vh)",
+			args: []string{"-vh"},
+			expected: &ParsedFlags{Version: true, Help: true},
+			remaining: []string{},
+		},
+		{
+			name: "Version and List chained (-vl)",
+			args: []string{"-vl"},
+			expected: &ParsedFlags{Version: true, List: true},
+			remaining: []string{},
+		},
 	}
 
 	for _, test := range tests {
@@ -648,6 +675,9 @@ func TestParseFlagsChaining(t *testing.T) {
 			}
 			if flags.Help != test.expected.Help {
 				t.Errorf("Help: got %v, want %v", flags.Help, test.expected.Help)
+			}
+			if flags.Version != test.expected.Version {
+				t.Errorf("Version: got %v, want %v", flags.Version, test.expected.Version)
 			}
 			
 			// Check remaining arguments
@@ -799,6 +829,12 @@ func TestParseFlagsEdgeCases(t *testing.T) {
 			expected: &ParsedFlags{List: true, Config: true, Archive: true, Help: true},
 			remaining: []string{},
 		},
+		{
+			name: "Mix with version flags",
+			args: []string{"-v", "--config", "--version"},
+			expected: &ParsedFlags{Version: true, Config: true},
+			remaining: []string{},
+		},
 	}
 
 	for _, test := range tests {
@@ -829,6 +865,9 @@ func TestParseFlagsEdgeCases(t *testing.T) {
 			}
 			if flags.Help != test.expected.Help {
 				t.Errorf("Help: got %v, want %v", flags.Help, test.expected.Help)
+			}
+			if flags.Version != test.expected.Version {
+				t.Errorf("Version: got %v, want %v", flags.Version, test.expected.Version)
 			}
 			
 			// Check remaining arguments

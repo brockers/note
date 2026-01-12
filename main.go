@@ -34,6 +34,12 @@ type Config struct {
 	NotesDir string
 }
 
+var (
+	Version   = "dev"
+	CommitSHA = "not set"
+	BuildDate = "not set"
+)
+
 // ANSI color codes for terminal highlighting
 const (
 	ColorRed   = "\033[31m"
@@ -102,6 +108,12 @@ func main() {
 
 	// Parse custom flags with Unix-like behavior
 	flags, args := parseFlags(os.Args[1:])
+
+	// Handle version number
+	if flags.Version {
+		printVersion()
+		return
+	}
 
 	// Handle help
 	if flags.Help {
@@ -830,6 +842,7 @@ type ParsedFlags struct {
 	Autocomplete bool
 	Alias        bool
 	Help         bool
+	Version      bool
 }
 
 // parseFlags implements Unix-like flag parsing with support for flag chaining
@@ -842,6 +855,8 @@ func parseFlags(args []string) (*ParsedFlags, []string) {
 		
 		if arg == "--help" {
 			flags.Help = true
+		} else if arg == "--version" {
+			flags.Version = true
 		} else if arg == "--config" {
 			flags.Config = true
 		} else if arg == "--autocomplete" {
@@ -857,6 +872,8 @@ func parseFlags(args []string) (*ParsedFlags, []string) {
 			
 			for j, char := range flagChars {
 				switch char {
+				case 'v':
+					flags.Version = true
 				case 'h':
 					flags.Help = true
 				case 'l':
@@ -946,6 +963,10 @@ func copyFile(src, dst string) error {
 	return err
 }
 
+func printVersion() {
+	fmt.Println(Version)
+}
+
 func printHelp() {
 	fmt.Println(`note - A minimalist CLI note-taking tool
 
@@ -961,11 +982,13 @@ OPTIONS:
   -d <pattern>             Delete/archive matching notes
   -a [pattern]             Include archived notes in list/search
   -h                       Show this help message
+  -v                       Print version number of note
 
   --help                   Show this help message
   --config                 Run setup/reconfigure
   --autocomplete           Setup/update command line autocompletion
-  --alias                  Setup shell aliases (n, nls, nrm)
+  --alias                  Setup/update shell aliases (n, nls, nrm)
+  --version                Print version number of note
 
 FLAG CHAINING:
   Single-character flags can be combined:
@@ -992,6 +1015,11 @@ ALIASES:
 CONFIGURATION:
   Settings are stored in ~/.note
   Use 'note --config' to reconfigure
+
+RELEASE:
+     Version:    ` + Version + `
+  Build Date:    ` + BuildDate + `
+  Commit SHA:    ` + CommitSHA + `
 
 LICENSE:
   This program is free software licensed under GPL-3.0.

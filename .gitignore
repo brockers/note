@@ -40,3 +40,4 @@ test-notes/
 # Original SETUP.md from initial commit
 SETUP.md
 main.go.backup
+docs/versioning.md

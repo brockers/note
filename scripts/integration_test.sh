@@ -60,6 +60,10 @@ run_test "Archive directory created" "test -d $TEST_DIR/Notes/Archive" ""
 # Test 4: Help command
 run_test "Help command works" "$NOTE_CMD --help 2>&1 | grep -q 'note - A minimalist CLI'" ""
 
+# Test 4a: Version command tests
+run_test "Short version flag works" "$NOTE_CMD -v | grep -q '^dev$'" ""
+run_test "Long version flag works" "$NOTE_CMD --version | grep -q '^dev$'" ""
+
 # Test 5: Create a note (would open editor, so we'll test file creation differently)
 TODAY=$(date +%Y%m%d)
 touch "$TEST_DIR/Notes/test-note-$TODAY.md"

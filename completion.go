@@ -142,7 +142,7 @@ _note_complete() {
     if [[ ${COMP_CWORD} -eq 1 ]]; then
         # If user starts typing a dash, offer flags
         if [[ "$cur" == -* ]]; then
-            local flags="-l -s -a -d --config --autocomplete --alias --help -h"
+            local flags="-l -s -a -d -v --config --autocomplete --alias --help --version -h"
             COMPREPLY=($(compgen -W "$flags" -- "${cur}"))
         else
             # Otherwise, prioritize note names
@@ -233,7 +233,7 @@ _note_complete() {
     if [[ $CURRENT -eq 2 ]]; then
         # If user starts typing a dash, offer flags
         if [[ "$cur" == -* ]]; then
-            local flags=("-l" "-s" "-a" "-d" "--config" "--autocomplete" "--alias" "--help" "-h")
+            local flags=("-l" "-s" "-a" "-d" "-v" "--config" "--autocomplete" "--alias" "--help" "--version" "-h")
             compadd -a flags
         else
             # Otherwise, prioritize note names
@@ -330,6 +330,7 @@ complete -c note -s d -d "Archive notes" -r
 complete -c note -l config -d "Run setup/reconfigure"
 complete -c note -l autocomplete -d "Setup/update command line autocompletion"
 complete -c note -l alias -d "Setup shell aliases"
+complete -c note -s v -l version -d "Show version"
 complete -c note -s h -l help -d "Show help"
 
 # Complete with existing note names for main argument
