@@ -1,22 +1,29 @@
 # note
 
+[![Version](https://img.shields.io/badge/version-0.1.5-blue.svg)](https://github.com/brockers/note/releases/tag/v0.1.5)
+[![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+[![Tests](https://img.shields.io/badge/tests-173%20passing-brightgreen.svg)](#testing)
+
 A minimalist, opinionated command-line note-taking tool written in Go. Take notes in your favorite text editor with automatic date stamping, simple organization, and zero lock-in - just plain markdown files.
 
-note includes:
+## Features
 
-- **Automatic Time Stamping**: All note notes get `-yyyymmdd` added to the end of their names
-- **Auto-compete**: Typing `note SomeOldNote` and tabbing twice will show all notes that being with SomeOldNote
-- **Easy Configutration**: 2 question setup when first running the app
-- **Archiving**: Notes are never deleted by note, they are archived in a folder in your setup folder and can be listed/searched with the `-a` command
-- **Always in MD format**: For universal access, even when not in note.
-- **Well Documented**: Standard unix help via `-h` or `--help` options
-- **Fully Tested**: Full setup of unit and e2e tests to make sure the program updates always work and never accidently delete notes.
+- **Automatic Date Stamping**: All notes get `-YYYYMMDD` added to the end of their names
+- **Tab Completion**: Type `note SomeOldNote` and press TAB to see all matching notes (Bash, Zsh, Fish)
+- **Two-Question Setup**: Simple configuration when first running the app
+- **Archive System**: Notes are never deleted, just archived and can be listed/searched with the `-a` flag
+- **Flag Chaining**: Combine flags like `-al` for listing all notes including archived
+- **Full-Text Search**: Search note contents with the `-s` flag
+- **Universal Markdown**: All notes saved as `.md` files for maximum compatibility
+- **Shell Aliases**: Optional convenient shortcuts (`n`, `nls`, `nrm`)
+- **Well Documented**: Standard Unix help via `-h` or `--help` options
+- **Thoroughly Tested**: 173 automated tests covering unit, integration, completion, and setup scenarios
 
 ## Example Usage
 
 ### Setup
 
-If it is the first time you run note, it will ask you for your prefered editor, and where you put your notes.
+If it's the first time you run note, it will ask you for your preferred editor and where you want to save your notes.
 
 ```bash
 note
@@ -26,7 +33,7 @@ Where are you saving your notes (~/Notes): ~/Dropbox/Reference/Notes/
 Setting your notes location to ~/Dropbox/Reference/Notes/ ...
 ```
 
-After which, note will save these configuration settings to your ~/note file. You can also edit these settings by re-running the setup with:
+After which, note will save these configuration settings to your `~/.note` file. You can also edit these settings by re-running the setup with:
 
 ```bash
 note --config
@@ -36,30 +43,35 @@ Where are you saving your notes (/Dropbox/Reference/Notes/): ~/Documents/Notes/
 Setting your notes location to ~/Documents/Notes/ ...
 ```
 
-### Create a new Note
+### Create a New Note
 
 ```bash
-note Thoughts_on_Ai
+note Thoughts_on_AI
 ```
 
-Note will open your prefered text editor with an unsaved file name of `Thoughts_on_Ai-<currentdate>.md` where `<currentdate>` is in the format yyyymmdd.
+Note will open your preferred text editor with a file named `Thoughts_on_AI-20260112.md` where the date is automatically added in `YYYYMMDD` format.
 
-### Open an old Note
+### Open an Existing Note
 
 ```bash
-note Thoughts_on_Ai-20260407.md
+note Thoughts_on_AI-20260407.md
 ```
 
-Note will open the note `Thoughts_on_Ai-20260407.md` in your preferred text editor.
+Note will open the specified note in your preferred text editor.
 
-Additionally, you can use note's autocomplete feature to find your file by starting to type the note name and double tapping TAB.
-
-### List/Search Notes
-
-List all of your current notes with 
+You can also use tab completion to find your note by starting to type the note name and pressing TAB twice:
 
 ```bash
-note -ls # Or alternatively 'note -l'
+note Thou<TAB><TAB>
+# Shows: Thoughts_on_AI-20260112.md  Thoughts_on_AI-20260407.md
+```
+
+### List Notes
+
+List all of your current notes:
+
+```bash
+note -l
 
   Chess-Notes-20230714.md
   civ5-notes-20200101.md
@@ -67,43 +79,61 @@ note -ls # Or alternatively 'note -l'
   Die_backpacker_die-20230507.md
   Emily_Interview_Notes-20210224.md
   Engineering-Infrastructure-Design-20210216.md
-  Experience_vs_Achivement-20240511.md
+  Experience_vs_Achievement-20240511.md
   Family-Notes-20220314.md
   Fitness-after-45-Plan-20241109.md
 ```
 
-You can search (case insensive) your current notes with:
+Filter by filename pattern (case-insensitive):
 
 ```bash
-note -ls 2021
+note -l 2021
 
   Emily_Interview_Notes-20210224.md
   Engineering-Infrastructure-Design-20210216.md
 ```
-### Archive Note(s)
 
-You can archive notes. This makes them not current by moving them into your '<notespath>/Archive/' where '<notespath>' is the location you specified during setup. Archived notes will not appear in normal '-l' and '-al' search results.
+### Search Note Contents
+
+Search for text within your notes using full-text search:
 
 ```bash
-note -rm Chess-Notes-20230714 #The md is optional
+note -s "important idea"
+
+  Project-Ideas-20260110.md:
+    15: This is an important idea for the future
+
+  Meeting-Notes-20260108.md:
+    23: Discussed important idea with team
+```
+### Archive Notes
+
+Archive notes to keep your workspace clean. Archived notes move to `<notespath>/Archive/` and won't appear in normal `-l` searches.
+
+Archive a single note:
+
+```bash
+note -d Chess-Notes-20230714  # The .md extension is optional
 Archiving:
   Chess-Notes-20230714
 ```
 
-or for multiple notes
+Archive multiple notes with wildcards:
 
 ```bash
-note -rm E*
+note -d E*
 Archiving:
   Emily_Interview_Notes-20210224.md
   Engineering-Infrastructure-Design-20210216.md
-  Experience_vs_Achivement.md
+  Experience_vs_Achievement-20240511.md
 ```
 
-You can list ALL your notes (including archived notes) simply by:
+### Working with Archived Notes
+
+List all notes including archived:
 
 ```bash
-note-a 
+note -a
 
   Chess-Notes-20230714.md
   civ5-notes-20200101.md
@@ -111,12 +141,12 @@ note-a
   Die_backpacker_die-20230507.md
   Emily_Interview_Notes-20210224.md
   Engineering-Infrastructure-Design-20210216.md
-  Experience_vs_Achivement-20240511.md
+  Experience_vs_Achievement-20240511.md
   Family-Notes-20220314.md
   Fitness-after-45-Plan-20241109.md
 ```
 
-You can search (case insensive) ALL your notes (including archived notes) by doing:
+Search all notes including archived (case-insensitive):
 
 ```bash
 note -a Notes
@@ -127,11 +157,58 @@ note -a Notes
   Family-Notes-20220314.md
 ```
 
+### Flag Chaining
+
+Combine flags for powerful operations:
+
+```bash
+note -al project        # List all notes (including archived) matching "project"
+note -as "bug fix"      # Search all notes (including archived) for "bug fix"
+note -la meeting        # Same as -al (order doesn't matter)
+```
+
+### Shell Aliases (Optional)
+
+Set up convenient aliases for common commands:
+
+```bash
+note --alias
+```
+
+This creates:
+- `n` - Same as `note`
+- `nls` - Same as `note -l`
+- `nrm` - Same as `note -d`
+
 ### Help
 
-You can always get help via: `note -h` or `note --help`
+Get help anytime with:
+
+```bash
+note -h         # Short help
+note --help     # Detailed help
+note --version  # Show version information
+```
 
 ## Installation
+
+### From Release Binary
+
+Download the latest release from [GitHub Releases](https://github.com/brockers/note/releases):
+
+```bash
+# Download the release binary (replace with latest version)
+wget https://github.com/brockers/note/releases/download/v0.1.5/note
+
+# Make it executable
+chmod +x note
+
+# Move to your PATH
+sudo mv note /usr/local/bin/
+
+# Verify installation
+note --version
+```
 
 ### From Source
 
@@ -145,43 +222,141 @@ cd note
 
 # Build the binary
 make build
-# Or directly with go:
-# go build -o note
 
 # Install system-wide (optional, requires sudo)
 make install
 
-# Or copy manually to your PATH:
-# cp note ~/bin/  # or wherever you keep personal binaries
+# Or copy manually to your PATH
+cp note ~/bin/  # or wherever you keep personal binaries
 ```
 
-### Bash Completion
+### Enable Tab Completion
 
-To enable tab completion for bash:
+After installation, enable tab completion for your shell:
 
 ```bash
-# If installed via make install, completions are already in place
-# Otherwise, source the completion script:
-source completions/bash/note
+# Automatic setup (recommended)
+note --autocomplete
+
+# This will configure completion for your detected shell (Bash, Zsh, or Fish)
+```
+
+Manual setup if needed:
+
+```bash
+# Bash
+echo 'source <(note --autocomplete bash)' >> ~/.bashrc
+
+# Zsh
+echo 'source <(note --autocomplete zsh)' >> ~/.zshrc
+
+# Fish
+note --autocomplete fish > ~/.config/fish/completions/note.fish
 ```
 
 ## Development
 
+### Building
+
 ```bash
-# Run tests
+# Build the binary
+make build
+
+# Build release version with version info
+make release
+
+# Format code
+make fmt
+
+# Run static analysis
+make vet
+
+# Clean build artifacts
+make clean
+```
+
+### Testing
+
+`note` has a comprehensive test suite with 173 automated tests:
+
+```bash
+# Run unit tests
 make test
 
 # Run integration tests
 make integration-test
 
+# Run completion tests
+make completion-test
+
+# Run setup tests
+make setup-test
+
 # Run all tests
 make test-all
+```
 
-# Format code
-make fmt
+Test coverage includes:
+- **Unit Tests** (51 tests): Core functionality, path handling, search, configuration
+- **Integration Tests** (51 tests): End-to-end workflows, archiving, listing, searching
+- **Completion Tests** (21 tests): Tab completion for Bash, Zsh, Fish
+- **Setup Tests** (50 tests): First-run setup, configuration, shell integration
 
-# Clean build artifacts
-make clean
+### Release Process
+
+To create a new release:
+
+```bash
+# Run the release command (handles testing, versioning, building, and tagging)
+# Patch version bump (0.1.4 -> 0.1.5)
+make bump && make release && git push origin <TAG>
+
+# Or use the automated release workflow
+# /development:release [patch|minor|major]
+```
+
+## Example Workflows
+
+### Daily Journaling
+
+```bash
+note journal            # Creates journal-20260112.md today
+note journal            # Creates journal-20260113.md tomorrow
+note -l journal         # List all journal entries
+```
+
+### Project Notes
+
+```bash
+note project-alpha-design
+note project-alpha-meeting
+note -l project-alpha   # List all project-alpha notes
+note -s "action items"  # Search for action items across notes
+```
+
+### Research Workflow
+
+```bash
+note research-topic
+note -s "important finding"
+note -al research       # List all research notes, including archived
+note -d research-*      # Archive research notes when done
+```
+
+### Integration with Unix Tools
+
+```bash
+# Count your notes
+note -l | wc -l
+
+# Find TODOs from 2026
+note -l 2026 | xargs grep "TODO"
+
+# Version control your notes
+cd ~/Notes && git init && git add . && git commit -m "Initial notes"
+
+# Sync with Dropbox
+note --config  # Point to ~/Dropbox/Notes
 ```
 
 ## Philosophy
@@ -189,12 +364,25 @@ make clean
 `note` follows the Unix philosophy: do one thing well and compose with other tools. It's intentionally minimal and opinionated to provide a frictionless note-taking experience for terminal users.
 
 - **No databases**: Just markdown files in folders
-- **No sync built-in**: Use git, Dropbox, or any sync tool you prefer  
+- **No sync built-in**: Use git, Dropbox, or any sync tool you prefer
 - **No tags or categories**: Use your filesystem and grep
 - **No dependencies**: Single static binary
 - **No lock-in**: Your notes are just text files
 
-## LICENSE
+## Support & Contributing
 
-  This program is free software licensed under GPL-3.0.
-  See <https://www.gnu.org/licenses/> for details.
+- **Repository**: https://github.com/brockers/note
+- **Issues**: https://github.com/brockers/note/issues
+- **Releases**: https://github.com/brockers/note/releases
+- **Documentation**: See [RELEASE.md](RELEASE.md) for release notes and [SETUP.md](SETUP.md) for setup details
+
+Contributions are welcome! Please feel free to submit issues or pull requests.
+
+## License
+
+This program is free software licensed under GPL-3.0.
+See https://www.gnu.org/licenses/ for details.
+
+---
+
+**Version 0.1.5** | Built with Go | [View Release Notes](RELEASE.md)
