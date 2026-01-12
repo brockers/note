@@ -19,16 +19,34 @@ Automate the complete software release process including committing changes, bum
    - Generate comprehensive commit message following Conventional Commits
    - Execute `git commit` with the generated message
 
-3. **Bump version and create git tag**:
+3. **Generate and commit release notes**:
+   - Determine the next version number based on bump type (patch/minor/major)
+   - Get the current latest tag with `git describe --tags --abbrev=0` (e.g., v0.1.5)
+   - Calculate what the next tag will be based on bump type
+   - Get all commits since the last tag with `git log <last_tag>..HEAD --pretty=format:"%h %s"`
+   - Parse commits following Conventional Commits format (type(scope): description)
+   - Generate release notes in markdown format with sections:
+     * Version header with date
+     * "What's New" section with categorized changes (Features, Bug Fixes, Documentation, etc.)
+     * List of commits grouped by type
+   - Read existing RELEASE.md file
+   - Insert new release notes at the top (after the main title, before previous releases)
+   - Write updated RELEASE.md back to file
+   - Stage RELEASE.md: `git add RELEASE.md`
+   - Commit with message: `docs(release): add release notes for v<VERSION>`
+   - Show the generated release notes to the user
+
+4. **Bump version and create git tag**:
    - Default (no args or "patch"): Run `make bump` (bumps patch version)
    - If "major" argument: Run `make bump-major` (bumps major version, resets minor and patch to 0)
    - If "minor" argument: Run `make bump-minor` (bumps minor version, resets patch to 0)
    - Capture the new tag version created by the make command
+   - IMPORTANT: This tag should match the version used in step 3 for the release notes
 
-4. **Build release binary**:
+5. **Build release binary**:
    - Run `make release` to build binary with version information injected
 
-5. **Validate release binary**:
+6. **Validate release binary**:
    - Run `./note --help` and capture the output
    - Verify the version matches the tag created (without 'v' prefix)
    - Verify the version is NOT "dev" or "0.0.0" (these indicate errors)
@@ -37,9 +55,9 @@ Automate the complete software release process including committing changes, bum
    - If any validation fails, STOP and report the error - DO NOT push the tag
    - Show the validated release information to the user
 
-6. **Push tag to origin**:
+7. **Push tag to origin**:
    - Only after successful validation, push the newly created tag to origin: `git push origin <TAG>`
-   - Where TAG is the version tag created in step 3
+   - Where TAG is the version tag created in step 4
 
 ## Arguments
 
@@ -49,16 +67,21 @@ Automate the complete software release process including committing changes, bum
 
 ## Examples
 
-- `/release` - Commits, bumps patch (0.1.3 → 0.1.4), builds, and pushes tag
+- `/release` - Commits, generates release notes, bumps patch (0.1.3 → 0.1.4), builds, and pushes tag
 - `/release patch` - Same as above
-- `/release minor` - Commits, bumps minor (0.1.3 → 0.2.0), builds, and pushes tag
-- `/release major` - Commits, bumps major (0.1.3 → 1.0.0), builds, and pushes tag
+- `/release minor` - Commits, generates release notes, bumps minor (0.1.3 → 0.2.0), builds, and pushes tag
+- `/release major` - Commits, generates release notes, bumps major (0.1.3 → 1.0.0), builds, and pushes tag
 
 ## Important Notes
 
 - CRITICAL: Run cleanup and tests FIRST - make clean, vet, fmt, test-all must all pass
 - CRITICAL: If `make fmt` changes any files, STOP - code must be formatted before release
 - CRITICAL: If any tests fail, STOP - all tests must pass before release
+- CRITICAL: Release notes are automatically generated from git commits since the last tag
+  * Commits should follow Conventional Commits format: `type(scope): description`
+  * Release notes will categorize changes by type (feature, bug, docs, refactor, etc.)
+  * The new version's release notes are inserted at the top of RELEASE.md
+  * RELEASE.md is committed before creating the version tag
 - Always show what version is being created before executing
 - Show clear progress indicators for each step
 - If any step fails, stop the process and report the error

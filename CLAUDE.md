@@ -221,16 +221,22 @@ Use the `/development:release` command for fully automated releases:
 
 2. **Commit staged changes** (if any exist)
 
-3. **Version bump**: Creates git tag (e.g., v0.1.5)
+3. **Generate and commit release notes**:
+   - Analyzes commits since last release tag
+   - Categorizes changes by type (feature, bug, docs, etc.)
+   - Updates RELEASE.md with new version's release notes
+   - Commits RELEASE.md changes
 
-4. **Build release binary**: Injects version, build date, commit SHA
+4. **Version bump**: Creates git tag (e.g., v0.1.5)
 
-5. **Validate binary**:
+5. **Build release binary**: Injects version, build date, commit SHA
+
+6. **Validate binary**:
    - Checks version matches tag
    - Verifies version is NOT "dev" or "0.0.0"
    - Confirms build date and commit SHA are valid
 
-6. **Push tag to origin**: Only after successful validation
+7. **Push tag to origin**: Only after successful validation
 
 ### Manual Release (if needed)
 
@@ -240,17 +246,23 @@ make clean && make vet && make fmt
 git diff --exit-code  # Verify no fmt changes
 make test-all         # All 173 tests must pass
 
-# 2. Bump version and tag
-make bump             # Creates tag (e.g., v0.1.5)
+# 2. Generate and commit release notes
+# Manually update RELEASE.md with new version's release notes
+# Include commits since last tag, categorized by type
+git add RELEASE.md
+git commit -m "docs(release): add release notes for v0.1.6"
 
-# 3. Build release
+# 3. Bump version and tag
+make bump             # Creates tag (e.g., v0.1.6)
+
+# 4. Build release
 make release          # Builds with version info
 
-# 4. Validate binary
+# 5. Validate binary
 ./note --version      # Verify version, date, SHA
 
-# 5. Push tag
-git push origin v0.1.5
+# 6. Push tag
+git push origin v0.1.6
 ```
 
 ### Version Numbering
@@ -264,7 +276,9 @@ git push origin v0.1.5
 - [ ] All 173 tests passing
 - [ ] Code formatted (`make fmt`)
 - [ ] No static analysis warnings (`make vet`)
-- [ ] RELEASE.md updated with changes
+- [ ] RELEASE.md updated with new version's release notes (automated in `/development:release`)
+- [ ] Release notes categorize commits by type (feature, bug, docs, etc.)
+- [ ] RELEASE.md changes committed before tag creation
 - [ ] Binary validated (version, date, SHA correct)
 - [ ] Tag pushed to GitHub
 - [ ] GitHub release created (optional)
