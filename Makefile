@@ -1,4 +1,4 @@
-.PHONY: build release test clean install uninstall help bump-major bump-minor bump-patch version-current
+.PHONY: build release test clean install uninstall help bump bump-major bump-minor bump-patch version-current
 
 # Default target - build the project
 all: build
@@ -7,7 +7,7 @@ all: build
 help:
 	@echo "Available make targets:"
 	@echo "  build           - Build the note binary"
-	@echo "  release         - Build release binary with version info (use VERSION=v1.0.0)"
+	@echo "  release         - Build release binary with version from current git tag"
 	@echo "  test            - Run Go unit tests"
 	@echo "  integration-test - Run integration tests"
 	@echo "  completion-test - Run completion functionality tests"
@@ -24,6 +24,7 @@ help:
 	@echo ""
 	@echo "Version management:"
 	@echo "  version-current - Show current version from git tags"
+	@echo "  bump            - Bump patch version (default, same as bump-patch)"
 	@echo "  bump-major      - Bump major version (X.0.0) and create git tag"
 	@echo "  bump-minor      - Bump minor version (x.X.0) and create git tag"
 	@echo "  bump-patch      - Bump patch version (x.x.X) and create git tag"
@@ -31,7 +32,6 @@ help:
 # Build variables
 BINARY_NAME=note
 INSTALL_PATH=/usr/local/bin
-VERSION?=dev
 
 # Build the application
 build:
@@ -39,11 +39,17 @@ build:
 
 # Build release with version information
 release:
-	go build -ldflags "-X 'main.Version=$(VERSION)' -X 'main.CommitSHA=$(shell git rev-parse --short HEAD)' -X 'main.BuildDate=$(shell date -u +'%Y-%m-%d_%H:%M:%SUTC')'" -o $(BINARY_NAME)
+	@CURRENT_TAG=$$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"); \
+	VERSION=$${CURRENT_TAG#v}; \
+	echo "Building release version: $$VERSION"; \
+	go build -ldflags "-X 'main.Version=$$VERSION' -X 'main.CommitSHA=$(shell git rev-parse --short HEAD)' -X 'main.BuildDate=$(shell date -u +'%Y-%m-%d_%H:%M:%SUTC')'" -o $(BINARY_NAME)
 
 # Version management targets
 version-current:
 	@git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"
+
+# Default bump command (patch version)
+bump: bump-patch
 
 bump-major:
 	@echo "Bumping MAJOR version..."
