@@ -246,6 +246,56 @@ else
 fi
 
 echo
+echo "Testing alias completions (n, nls, nrm)..."
+
+# Test helper for alias completion
+run_alias_test() {
+    local alias_name="$1"
+    local test_name="$2"
+    local input="$3"
+    local expected_count="$4"
+
+    # Set up completion environment for alias
+    export COMP_WORDS=("$alias_name" "$input")
+    export COMP_CWORD=1
+    COMPREPLY=()
+
+    # Run completion
+    _note_complete_test
+
+    # Check results
+    local result_count=${#COMPREPLY[@]}
+
+    if [[ "$expected_count" == "-1" ]] || [[ $result_count -eq $expected_count ]]; then
+        echo -e "${GREEN}✓${NC} $test_name (found $result_count matches)"
+        if [[ $result_count -gt 0 ]] && [[ $result_count -le 3 ]]; then
+            for result in "${COMPREPLY[@]}"; do
+                echo "    - $result"
+            done
+        fi
+        ((TESTS_PASSED++))
+    else
+        echo -e "${RED}✗${NC} $test_name"
+        echo "    Expected: count=$expected_count"
+        echo "    Got: count=$result_count"
+        ((TESTS_FAILED++))
+    fi
+}
+
+# Test 'n' alias (same as note)
+run_alias_test "n" "Alias 'n' should complete Life notes" "Life" 3
+run_alias_test "n" "Alias 'n' should complete ASG notes" "ASG" 2
+run_alias_test "n" "Alias 'n' should handle empty input" "" 10
+
+# Test 'nls' alias (note -l)
+run_alias_test "nls" "Alias 'nls' should complete Life notes" "Life" 3
+run_alias_test "nls" "Alias 'nls' should complete Project notes" "Project" 2
+
+# Test 'nrm' alias (note -d)
+run_alias_test "nrm" "Alias 'nrm' should complete Family notes" "Family" 1
+run_alias_test "nrm" "Alias 'nrm' should complete Chess notes" "Chess" 1
+
+echo
 echo "==================================="
 echo "Test Summary:"
 echo -e "  Passed: ${GREEN}$TESTS_PASSED${NC}"

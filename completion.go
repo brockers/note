@@ -183,7 +183,11 @@ _note_complete() {
     fi
 }
 
+# Register completion for note and its aliases
 complete -F _note_complete note
+complete -F _note_complete n
+complete -F _note_complete nls
+complete -F _note_complete nrm
 `
 
 	if err := os.WriteFile(completionScriptPath, []byte(bashCompletionScript), 0644); err != nil {
@@ -275,7 +279,11 @@ _note_complete() {
     fi
 }
 
+# Register completion for note and its aliases
 compdef _note_complete note
+compdef _note_complete n
+compdef _note_complete nls
+compdef _note_complete nrm
 `
 
 	if err := os.WriteFile(completionScriptPath, []byte(zshCompletionScript), 0644); err != nil {
@@ -322,6 +330,7 @@ func SetupFishCompletion() {
 
 	// Create a simple fish completion script
 	fishCompletionScript := `# note command completion for fish
+# Main command
 complete -c note -f
 complete -c note -s l -d "List notes"
 complete -c note -s s -d "Search notes" -r
@@ -335,6 +344,27 @@ complete -c note -s h -l help -d "Show help"
 
 # Complete with existing note names for main argument
 complete -c note -n '__fish_is_first_token' -a '(if test -f ~/.note; set notesdir (grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|"); if test -d "$notesdir"; find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \\; 2>/dev/null | sort; end; end)'
+
+# Alias: n (same as note)
+complete -c n -f
+complete -c n -s l -d "List notes"
+complete -c n -s s -d "Search notes" -r
+complete -c n -s a -d "Include archived notes"
+complete -c n -s d -d "Archive notes" -r
+complete -c n -l config -d "Run setup/reconfigure"
+complete -c n -l autocomplete -d "Setup/update command line autocompletion"
+complete -c n -l alias -d "Setup shell aliases"
+complete -c n -s v -l version -d "Show version"
+complete -c n -s h -l help -d "Show help"
+complete -c n -n '__fish_is_first_token' -a '(if test -f ~/.note; set notesdir (grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|"); if test -d "$notesdir"; find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \\; 2>/dev/null | sort; end; end)'
+
+# Alias: nls (note -l)
+complete -c nls -f
+complete -c nls -n '__fish_is_first_token' -a '(if test -f ~/.note; set notesdir (grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|"); if test -d "$notesdir"; find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \\; 2>/dev/null | sort; end; end)'
+
+# Alias: nrm (note -d)
+complete -c nrm -f
+complete -c nrm -n '__fish_is_first_token' -a '(if test -f ~/.note; set notesdir (grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|"); if test -d "$notesdir"; find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \\; 2>/dev/null | sort; end; end)'
 `
 
 	noteCompletionFile := filepath.Join(fishCompletionDir, "note.fish")

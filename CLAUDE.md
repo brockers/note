@@ -49,7 +49,7 @@ make test                 # Run unit tests
 make integration-test     # Run integration tests
 make completion-test      # Run tab completion tests
 make setup-test          # Run setup/configuration tests
-make test-all            # Run all test suites (173 tests total)
+make test-all            # Run all test suites (180 tests total)
 
 # Code Quality Commands
 make fmt            # Format Go code
@@ -70,13 +70,13 @@ go test -v
 # Integration tests (51 tests)
 ./scripts/integration_test.sh
 
-# Completion tests (21 tests)
+# Completion tests (28 tests)
 ./scripts/completion_test.sh
 
 # Setup tests (50 tests)
 ./scripts/setup_integration_test.sh
 
-# All tests (173 tests total)
+# All tests (180 tests total)
 make test-all
 ```
 
@@ -101,17 +101,17 @@ make test
 # Level 3: Integration Tests (51 tests)
 make integration-test
 
-# Level 4: Completion Tests (21 tests)
+# Level 4: Completion Tests (28 tests)
 make completion-test
 
 # Level 5: Setup Tests (50 tests)
 make setup-test
 
-# Level 6: All Tests (173 tests - REQUIRED before release)
+# Level 6: All Tests (180 tests - REQUIRED before release)
 make test-all
 ```
 
-**Important**: All 173 tests MUST pass before any release. If `make fmt` changes files, commit those changes before proceeding.
+**Important**: All 180 tests MUST pass before any release. If `make fmt` changes files, commit those changes before proceeding.
 
 ## Project Structure
 
@@ -119,6 +119,7 @@ make test-all
 note/
 ├── main.go                       # Main application code (single-file architecture)
 ├── main_test.go                  # Unit tests (51 tests)
+├── completion.go                 # Tab completion functionality
 ├── go.mod                        # Go module definition
 ├── Makefile                      # Build automation and release management
 ├── README.md                     # User documentation (updated with v0.1.5 info)
@@ -148,9 +149,29 @@ note/
 - Comprehensive error handling
 - File operations use `filepath` package for cross-platform compatibility
 
+### MANDATORY: Test-Driven Development
+
+**CRITICAL REQUIREMENT**: Every code change MUST include tests. No exceptions.
+
+When you add functionality, modify functionality, or fix a bug, you MUST:
+
+1. **Write tests FIRST** before the work is considered complete
+2. **Add unit tests** for the specific functionality/fix in `main_test.go`
+3. **Add integration tests** in the appropriate test script (`scripts/integration_test.sh`, `scripts/completion_test.sh`, or `scripts/setup_integration_test.sh`) if the change affects user workflows
+4. **Verify tests fail** before the fix (for bug fixes) or pass after implementation
+5. **Run all tests** with `make test-all` to ensure no regressions
+
+**Examples of required test coverage**:
+- New feature → Unit tests + integration tests
+- Bug fix → Regression test to prevent the bug from returning
+- Refactoring → Tests to verify behavior unchanged
+- Performance improvement → Tests to verify correctness maintained
+
+**This is non-negotiable**. If you complete a code change without tests, the work is incomplete and must be finished by adding appropriate test coverage before moving on.
+
 ### Testing Strategy
 
-The project has **173 automated tests** across four test suites:
+The project has **180 automated tests** across four test suites:
 
 1. **Unit Tests** (51 tests in `main_test.go`)
    - Core functionality, path handling, search, configuration
@@ -165,10 +186,11 @@ The project has **173 automated tests** across four test suites:
    - Special character handling
    - Symlink directory support
 
-3. **Completion Tests** (21 tests in `scripts/completion_test.sh`)
+3. **Completion Tests** (28 tests in `scripts/completion_test.sh`)
    - Tab completion for Bash, Zsh, Fish
    - Partial matching and case-insensitive completion
    - Flag completion
+   - Alias completion for n, nls, nrm
    - Edge cases (empty input, no matches)
 
 4. **Setup Tests** (50 tests in `scripts/setup_integration_test.sh`)
@@ -217,7 +239,7 @@ Use the `/development:release` command for fully automated releases:
    - Runs `make vet` for static analysis
    - Runs `make fmt` to format code
    - Verifies fmt made no changes (stops if it did)
-   - Runs `make test-all` (all 173 tests must pass)
+   - Runs `make test-all` (all 180 tests must pass)
 
 2. **Commit staged changes** (if any exist)
 
@@ -244,7 +266,7 @@ Use the `/development:release` command for fully automated releases:
 # 1. Clean and validate
 make clean && make vet && make fmt
 git diff --exit-code  # Verify no fmt changes
-make test-all         # All 173 tests must pass
+make test-all         # All 180 tests must pass
 
 # 2. Generate and commit release notes
 # Manually update RELEASE.md with new version's release notes
@@ -273,7 +295,7 @@ git push origin v0.1.6
 
 ### Release Checklist
 
-- [ ] All 173 tests passing
+- [ ] All 180 tests passing
 - [ ] Code formatted (`make fmt`)
 - [ ] No static analysis warnings (`make vet`)
 - [ ] RELEASE.md updated with new version's release notes (automated in `/development:release`)
@@ -299,8 +321,12 @@ Remember: This is a focused CLI tool following Unix philosophy. Keep changes min
 ### When Making Changes
 
 1. **Read the code first**: Understand existing patterns
-2. **Write tests first**: Test-driven development
-3. **Keep it simple**: Resist feature creep
-4. **Run all tests**: Use `make test-all` before committing
-5. **Update docs**: README.md, RELEASE.md, and this file
-6. **Follow conventions**: Match existing code style
+2. **Write tests FIRST**: Test-driven development (MANDATORY - see "MANDATORY: Test-Driven Development" section above)
+3. **Implement the change**: Write the actual code
+4. **Verify tests pass**: Ensure new tests pass and no regressions
+5. **Keep it simple**: Resist feature creep
+6. **Run all tests**: Use `make test-all` before committing
+7. **Update docs**: README.md, RELEASE.md, and this file as needed
+8. **Follow conventions**: Match existing code style
+
+**Remember**: A code change without tests is incomplete work. Always add test coverage.
