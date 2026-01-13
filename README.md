@@ -378,6 +378,10 @@ note --config  # Point to ~/Dropbox/Notes
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
 
+## Related Projects
+
+- [mark](https://github.com/brockers/mark): An opinionated go commandline unix utility to create bookmarks for easy access to other folders.
+
 ## License
 
 This program is free software licensed under GPL-3.0.
