@@ -54,7 +54,10 @@
       "Bash(echo:*)",
       "Bash(git push:*)",
       "Bash(ls:*)",
-      "Bash(git describe:*)"
+      "Bash(git describe:*)",
+      "WebSearch",
+      "WebFetch(domain:www.makeareadme.com)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": []
   }

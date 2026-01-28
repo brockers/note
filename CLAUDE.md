@@ -328,3 +328,115 @@ Remember: This is a focused CLI tool following Unix philosophy. Keep changes min
 - When asked to commit, only commit what is **already staged**
 - If nothing is staged, inform the user and let them stage the changes
 - Exception: Version bump files during the automated release process may be staged
+
+## Example Workflows (Reference)
+
+These detailed workflows were removed from README.md to keep it concise. Preserved here for reference when helping users or writing documentation.
+
+### Daily Journaling
+
+```bash
+note journal            # Creates journal-20260112.md today
+note journal            # Creates journal-20260113.md tomorrow
+note -l journal         # List all journal entries
+```
+
+### Project Notes
+
+```bash
+note project-alpha-design
+note project-alpha-meeting
+note -l project-alpha   # List all project-alpha notes
+note -s "action items"  # Search for action items across notes
+```
+
+### Research Workflow
+
+```bash
+note research-topic
+note -s "important finding"
+note -al research       # List all research notes, including archived
+note -d research-*      # Archive research notes when done
+```
+
+### Integration with Unix Tools
+
+```bash
+# Count your notes
+note -l | wc -l
+
+# Find TODOs from 2026
+note -l 2026 | xargs grep "TODO"
+
+# Version control your notes
+cd ~/Notes && git init && git add . && git commit -m "Initial notes"
+
+# Sync with Dropbox
+note --config  # Point to ~/Dropbox/Notes
+```
+
+### Manual Tab Completion Setup
+
+If automatic setup (`note --autocomplete`) doesn't work:
+
+```bash
+# Bash
+echo 'source <(note --autocomplete bash)' >> ~/.bashrc
+
+# Zsh
+echo 'source <(note --autocomplete zsh)' >> ~/.zshrc
+
+# Fish
+note --autocomplete fish > ~/.config/fish/completions/note.fish
+```
+
+## Documentation Best Practices (Research Reference)
+
+Research conducted January 2026 on README best practices. Use when updating documentation.
+
+### Key Principles
+
+**From [Make a README](https://www.makeareadme.com/):**
+- Essential sections: Name, Description, Installation, Usage, Contributing, License
+- "While a README can be too long and detailed, too long is better than too short"
+- Rather than cutting information to reduce length, "utilize another form of documentation" (wikis, separate files)
+- Focus on clarity over brevity
+- Use examples liberally with expected output
+
+**From [GitHub README Best Practices](https://github.com/jehna/readme-best-practices):**
+- Provide practical templates to reduce friction
+- Keep content focused—avoid bloat
+- Create variant files for specific contexts instead of one universal document
+
+**General Best Practices:**
+- Keep it scannable: Use headings, lists, and callouts
+- Answer: What does it do? Why use it? How do I use it?
+- Provide practical examples with code snippets and expected output
+- Move detailed content to separate files (CONTRIBUTING.md, docs/)
+- Use a table of contents for longer documents
+
+### README Structure (Recommended)
+
+1. **Title + badges** - Project name with status indicators
+2. **One-line description** - What it does in one sentence
+3. **Features** - Bullet list of key capabilities
+4. **Quick Start** - Minimal steps to get running
+5. **Usage** - Core commands with examples
+6. **Installation** - How to install
+7. **Development** - Link to CONTRIBUTING.md for details
+8. **License** - One line with link
+
+### What to Move Out of README
+
+- Detailed build/test instructions → CONTRIBUTING.md
+- API documentation → docs/ or wiki
+- Changelog → CHANGELOG.md or RELEASE.md
+- Philosophy/design decisions → docs/design.md
+- Troubleshooting → docs/troubleshooting.md
+
+### Sources
+
+- https://www.makeareadme.com/
+- https://github.com/jehna/readme-best-practices
+- https://www.freecodecamp.org/news/how-to-write-a-good-readme-file/
+- https://tilburgsciencehub.com/topics/collaborate-share/share-your-work/content-creation/readme-best-practices/
