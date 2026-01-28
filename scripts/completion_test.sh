@@ -40,6 +40,12 @@ touch "$TEST_DIR/Project-Beta-20240108.md"
 touch "$TEST_DIR/Chess-Notes-20240109.md"
 touch "$TEST_DIR/README.md"
 
+# Create Archive directory with some archived notes
+mkdir -p "$TEST_DIR/Archive"
+touch "$TEST_DIR/Archive/Old-Project-20230101.md"
+touch "$TEST_DIR/Archive/Archived-Meeting-20230201.md"
+touch "$TEST_DIR/Archive/Life-101-Legacy-20230301.md"
+
 # Build the completion script dynamically based on current main.go
 echo "Building completion script from main.go..."
 ./note --autocomplete > /dev/null 2>&1 <<EOF
@@ -54,49 +60,73 @@ cat > $COMPLETION_SCRIPT << 'SCRIPT_END'
 _note_complete_test() {
     local cur="${COMP_WORDS[COMP_CWORD]}"
     local prev="${COMP_WORDS[COMP_CWORD-1]}"
-    
+
+    # Check if -a flag is present in the command line
+    local include_archive=false
+    for word in "${COMP_WORDS[@]}"; do
+        if [[ "$word" == "-a" || "$word" == "-al" || "$word" == "-la" || "$word" == "-as" || "$word" == "-sa" ]]; then
+            include_archive=true
+            break
+        fi
+    done
+
+    # Helper function to get notes
+    _get_notes() {
+        if [[ -f TEST_CONFIG_PATH ]]; then
+            local notesdir=$(grep "^notesdir=" TEST_CONFIG_PATH | cut -d= -f2 | sed "s|~|$HOME|")
+            if [[ -d "$notesdir" ]]; then
+                # Get notes from main directory
+                local notes=$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null)
+                # If -a flag is present, also include archived notes
+                if [[ "$include_archive" == true ]]; then
+                    local archivedir="$notesdir/Archive"
+                    if [[ -d "$archivedir" ]]; then
+                        local archived=$(find "$archivedir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sed 's/^/Archive\//')
+                        notes="$notes"$'\n'"$archived"
+                    fi
+                    # Also check lowercase archive
+                    archivedir="$notesdir/archive"
+                    if [[ -d "$archivedir" ]]; then
+                        local archived=$(find "$archivedir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sed 's/^/archive\//')
+                        notes="$notes"$'\n'"$archived"
+                    fi
+                fi
+                echo "$notes" | sort | tr '\n' ' '
+            fi
+        fi
+    }
+
     # If we're on the first argument
     if [[ ${COMP_CWORD} -eq 1 ]]; then
         # If user starts typing a dash, offer flags
         if [[ "$cur" == -* ]]; then
-            local flags="-l -s -a -d -v --config --autocomplete --alias --help --version -h"
+            local flags="-l -s -a -d -v --config --configure --autocomplete --alias --help --version -h"
             COMPREPLY=($(compgen -W "$flags" -- "${cur}"))
         else
             # Otherwise, prioritize note names
-            if [[ -f TEST_CONFIG_PATH ]]; then
-                local notesdir=$(grep "^notesdir=" TEST_CONFIG_PATH | cut -d= -f2 | sed "s|~|$HOME|")
-                if [[ -d "$notesdir" ]]; then
-                    # Get all .md files and remove the .md extension for easier completion
-                    local notes=$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort | tr '\n' ' ')
-                    # Use case-insensitive matching by converting both to lowercase
-                    local cur_lower=$(echo "$cur" | tr '[:upper:]' '[:lower:]')
-                    COMPREPLY=()
-                    for note in $notes; do
-                        local note_lower=$(echo "$note" | tr '[:upper:]' '[:lower:]')
-                        if [[ "$note_lower" == "$cur_lower"* ]]; then
-                            COMPREPLY+=("$note")
-                        fi
-                    done
+            local notes=$(_get_notes)
+            # Use case-insensitive matching by converting both to lowercase
+            local cur_lower=$(echo "$cur" | tr '[:upper:]' '[:lower:]')
+            COMPREPLY=()
+            for note in $notes; do
+                local note_lower=$(echo "$note" | tr '[:upper:]' '[:lower:]')
+                if [[ "$note_lower" == "$cur_lower"* ]]; then
+                    COMPREPLY+=("$note")
                 fi
-            fi
+            done
         fi
-    # If previous was -l, -a, or -d, offer note names
-    elif [[ "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-d" ]]; then
-        if [[ -f TEST_CONFIG_PATH ]]; then
-            local notesdir=$(grep "^notesdir=" TEST_CONFIG_PATH | cut -d= -f2 | sed "s|~|$HOME|")
-            if [[ -d "$notesdir" ]]; then
-                local notes=$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort | tr '\n' ' ')
-                # Use case-insensitive matching by converting both to lowercase
-                local cur_lower=$(echo "$cur" | tr '[:upper:]' '[:lower:]')
-                COMPREPLY=()
-                for note in $notes; do
-                    local note_lower=$(echo "$note" | tr '[:upper:]' '[:lower:]')
-                    if [[ "$note_lower" == "$cur_lower"* ]]; then
-                        COMPREPLY+=("$note")
-                    fi
-                done
+    # If previous was -l, -a, -d, or combined flags, offer note names
+    elif [[ "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-d" || "$prev" == "-al" || "$prev" == "-la" ]]; then
+        local notes=$(_get_notes)
+        # Use case-insensitive matching by converting both to lowercase
+        local cur_lower=$(echo "$cur" | tr '[:upper:]' '[:lower:]')
+        COMPREPLY=()
+        for note in $notes; do
+            local note_lower=$(echo "$note" | tr '[:upper:]' '[:lower:]')
+            if [[ "$note_lower" == "$cur_lower"* ]]; then
+                COMPREPLY+=("$note")
             fi
-        fi
+        done
     fi
 }
 SCRIPT_END
@@ -242,6 +272,124 @@ if [[ ${#COMPREPLY[@]} -eq 3 ]]; then
     ((TESTS_PASSED++))
 else
     echo -e "${RED}✗${NC} Archive flag completion failed (expected 3, got ${#COMPREPLY[@]})"
+    ((TESTS_FAILED++))
+fi
+
+echo
+echo "Testing archive flag (-a) completion..."
+
+# Test that -a flag includes archived notes
+export COMP_WORDS=("note" "-a" "")
+export COMP_CWORD=2
+COMPREPLY=()
+_note_complete_test
+# Should have 10 main notes + 3 archived notes = 13
+if [[ ${#COMPREPLY[@]} -eq 13 ]]; then
+    echo -e "${GREEN}✓${NC} Archive flag includes archived notes (found ${#COMPREPLY[@]} total notes)"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}✗${NC} Archive flag should include archived notes (expected 13, got ${#COMPREPLY[@]})"
+    echo "    Results:"
+    for result in "${COMPREPLY[@]}"; do
+        echo "      - $result"
+    done
+    ((TESTS_FAILED++))
+fi
+
+# Test that -a flag allows completing archived note names
+export COMP_WORDS=("note" "-a" "Archive/")
+export COMP_CWORD=2
+COMPREPLY=()
+_note_complete_test
+if [[ ${#COMPREPLY[@]} -eq 3 ]]; then
+    echo -e "${GREEN}✓${NC} Archive flag completes Archive/ prefix (found ${#COMPREPLY[@]} matches)"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}✗${NC} Archive flag should complete Archive/ prefix (expected 3, got ${#COMPREPLY[@]})"
+    ((TESTS_FAILED++))
+fi
+
+# Test that -a flag allows completing specific archived note
+export COMP_WORDS=("note" "-a" "Archive/Old")
+export COMP_CWORD=2
+COMPREPLY=()
+_note_complete_test
+if [[ ${#COMPREPLY[@]} -eq 1 ]]; then
+    echo -e "${GREEN}✓${NC} Archive flag completes specific archived note (found ${#COMPREPLY[@]} match)"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}✗${NC} Archive flag should complete specific archived note (expected 1, got ${#COMPREPLY[@]})"
+    ((TESTS_FAILED++))
+fi
+
+# Test that -al combined flag also includes archived notes
+export COMP_WORDS=("note" "-al" "")
+export COMP_CWORD=2
+COMPREPLY=()
+_note_complete_test
+if [[ ${#COMPREPLY[@]} -eq 13 ]]; then
+    echo -e "${GREEN}✓${NC} Combined -al flag includes archived notes (found ${#COMPREPLY[@]} total notes)"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}✗${NC} Combined -al flag should include archived notes (expected 13, got ${#COMPREPLY[@]})"
+    ((TESTS_FAILED++))
+fi
+
+# Test that -la combined flag also includes archived notes
+export COMP_WORDS=("note" "-la" "")
+export COMP_CWORD=2
+COMPREPLY=()
+_note_complete_test
+if [[ ${#COMPREPLY[@]} -eq 13 ]]; then
+    echo -e "${GREEN}✓${NC} Combined -la flag includes archived notes (found ${#COMPREPLY[@]} total notes)"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}✗${NC} Combined -la flag should include archived notes (expected 13, got ${#COMPREPLY[@]})"
+    ((TESTS_FAILED++))
+fi
+
+# Test that WITHOUT -a flag, archived notes are NOT included
+export COMP_WORDS=("note" "-l" "")
+export COMP_CWORD=2
+COMPREPLY=()
+_note_complete_test
+if [[ ${#COMPREPLY[@]} -eq 10 ]]; then
+    echo -e "${GREEN}✓${NC} Without -a flag, archived notes are excluded (found ${#COMPREPLY[@]} notes)"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}✗${NC} Without -a flag, archived notes should be excluded (expected 10, got ${#COMPREPLY[@]})"
+    ((TESTS_FAILED++))
+fi
+
+# Test that Life pattern with -a matches main notes starting with "Life"
+# Note: Archive/Life-101-Legacy does NOT match "Life" because it starts with "Archive/"
+export COMP_WORDS=("note" "-a" "Life")
+export COMP_CWORD=2
+COMPREPLY=()
+_note_complete_test
+# Should match: Life-101-Philosophy, Life-101-Habits, Life-101-Growth = 3 (Archive/Life-101-Legacy starts with "Archive/")
+if [[ ${#COMPREPLY[@]} -eq 3 ]]; then
+    echo -e "${GREEN}✓${NC} Pattern 'Life' matches main Life notes (found ${#COMPREPLY[@]} matches)"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}✗${NC} Pattern 'Life' should match main Life notes (expected 3, got ${#COMPREPLY[@]})"
+    echo "    Results:"
+    for result in "${COMPREPLY[@]}"; do
+        echo "      - $result"
+    done
+    ((TESTS_FAILED++))
+fi
+
+# Test that Archive/Life pattern with -a matches archived Life note
+export COMP_WORDS=("note" "-a" "Archive/Life")
+export COMP_CWORD=2
+COMPREPLY=()
+_note_complete_test
+if [[ ${#COMPREPLY[@]} -eq 1 ]]; then
+    echo -e "${GREEN}✓${NC} Pattern 'Archive/Life' matches archived Life note (found ${#COMPREPLY[@]} match)"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}✗${NC} Pattern 'Archive/Life' should match archived Life note (expected 1, got ${#COMPREPLY[@]})"
     ((TESTS_FAILED++))
 fi
 

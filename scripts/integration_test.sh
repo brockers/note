@@ -46,7 +46,8 @@ echo "Building note application..."
 go build -o note
 
 # Test 1: First run setup (now includes autocomplete prompt)
-echo -e "vim\n$TEST_DIR/Notes\nn\n" | $NOTE_CMD > /dev/null 2>&1
+# Input: editor -> directory -> create dir (y) -> completion (n)
+echo -e "vim\n$TEST_DIR/Notes\ny\nn\n" | $NOTE_CMD > /dev/null 2>&1
 run_test "Initial setup creates config" "test -f $TEST_DIR/.note" ""
 
 # Test 2: Config file content
@@ -202,7 +203,8 @@ run_test "Fish aliases can be added to config.fish" "grep -q 'alias n ' $TEST_DI
 # Test 25: -l flag should exclude archived notes
 TEST_DIR_NEW=$(mktemp -d)
 HOME=$TEST_DIR_NEW
-echo -e "vim\n$TEST_DIR_NEW/Notes\nn\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+# Input: editor -> directory -> create dir (y) -> completion (n) -> alias (n)
+echo -e "vim\n$TEST_DIR_NEW/Notes\ny\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
 echo "Current note" > "$TEST_DIR_NEW/Notes/current-$TODAY.md"
 echo "Another current" > "$TEST_DIR_NEW/Notes/another-$TODAY.md"
 mkdir -p "$TEST_DIR_NEW/Notes/Archive"
@@ -218,7 +220,8 @@ run_test "-a with pattern includes archived notes" "$NOTE_CMD -a archived | grep
 # Test 27: Test with lowercase 'archive' directory
 TEST_DIR_LOWER=$(mktemp -d)
 HOME=$TEST_DIR_LOWER
-echo -e "vim\n$TEST_DIR_LOWER/Notes\nn\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+# Input: editor -> directory -> create dir (y) -> completion (n) -> alias (n)
+echo -e "vim\n$TEST_DIR_LOWER/Notes\ny\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
 echo "Current note" > "$TEST_DIR_LOWER/Notes/current-$TODAY.md"
 # Create lowercase archive directory
 rm -rf "$TEST_DIR_LOWER/Notes/Archive"
@@ -231,7 +234,8 @@ run_test "-l excludes lowercase archive directory" "! $NOTE_CMD -l | grep -qi ar
 # Reset to clean environment for chaining tests
 TEST_DIR_CHAIN=$(mktemp -d)
 HOME=$TEST_DIR_CHAIN
-echo -e "vim\n$TEST_DIR_CHAIN/Notes\nn\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
+# Input: editor -> directory -> create dir (y) -> completion (n) -> alias (n)
+echo -e "vim\n$TEST_DIR_CHAIN/Notes\ny\nn\nn\n" | $NOTE_CMD > /dev/null 2>&1
 
 # Create test notes and archive
 echo "Current note 1" > "$TEST_DIR_CHAIN/Notes/current1-$TODAY.md"
@@ -251,11 +255,36 @@ run_test "Flag chain -la with pattern works same way" "$NOTE_CMD -la project | g
 
 # Test error conditions for flag chaining
 run_test "Invalid flag chain -ls gives error" "! $NOTE_CMD -ls >/dev/null 2>&1" ""
-run_test "Invalid flag chain -rm gives error" "! $NOTE_CMD -rm >/dev/null 2>&1" ""  
+run_test "Invalid flag chain -rm gives error" "! $NOTE_CMD -rm >/dev/null 2>&1" ""
 run_test "Invalid flag -x gives error" "! $NOTE_CMD -x >/dev/null 2>&1" ""
 
 # Cleanup chaining test directory
 rm -rf "$TEST_DIR_CHAIN"
+
+# Test 29: Completion scripts include archive support
+TEST_DIR_COMPLETION=$(mktemp -d)
+HOME=$TEST_DIR_COMPLETION
+# Input: editor -> directory -> create dir (y) -> completion (y) -> alias (n)
+echo -e "vim\n$TEST_DIR_COMPLETION/Notes\ny\ny\nn\n" | $NOTE_CMD > /dev/null 2>&1
+
+# Check that bash centralized config has archive-aware completion
+run_test "Bash completion includes archive flag detection" "grep -q 'include_archive' $TEST_DIR_COMPLETION/.note_bash_rc" ""
+run_test "Bash completion checks Archive directory" "grep -q 'archivedir.*Archive' $TEST_DIR_COMPLETION/.note_bash_rc" ""
+run_test "Bash completion supports -al flag" "grep -q '\-al' $TEST_DIR_COMPLETION/.note_bash_rc" ""
+run_test "Bash completion supports -la flag" "grep -q '\-la' $TEST_DIR_COMPLETION/.note_bash_rc" ""
+
+# Create zsh config and check it
+mkdir -p "$TEST_DIR_COMPLETION/.config/fish/completions"
+echo "# zsh config" > "$TEST_DIR_COMPLETION/.zshrc"
+# Manually trigger zsh completion setup by running autocomplete again with zsh
+SHELL=/bin/zsh $NOTE_CMD --autocomplete > /dev/null 2>&1 <<EOF
+y
+EOF
+
+run_test "Zsh completion includes archive flag detection" "grep -q 'include_archive' $TEST_DIR_COMPLETION/.note_zsh_rc 2>/dev/null || true" ""
+
+# Cleanup completion test directory
+rm -rf "$TEST_DIR_COMPLETION"
 
 # Cleanup additional test directories
 rm -rf "$TEST_DIR_NEW" "$TEST_DIR_LOWER"

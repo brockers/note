@@ -217,6 +217,32 @@ func SetupFishCompletion() {
 
 	// Create a simple fish completion script
 	fishCompletionScript := `# note command completion for fish
+
+# Helper function to get notes (includes archived if -a flag is present)
+function __note_get_notes
+    if test -f ~/.note
+        set notesdir (grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
+        if test -d "$notesdir"
+            # Get main notes
+            find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null
+            # Check if -a flag is in the command line
+            if contains -- -a (commandline -opc); or contains -- -al (commandline -opc); or contains -- -la (commandline -opc)
+                # Include archived notes
+                if test -d "$notesdir/Archive"
+                    for f in (find "$notesdir/Archive" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null)
+                        echo "Archive/$f"
+                    end
+                end
+                if test -d "$notesdir/archive"
+                    for f in (find "$notesdir/archive" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null)
+                        echo "archive/$f"
+                    end
+                end
+            end
+        end
+    end | sort
+end
+
 # Main command
 complete -c note -f
 complete -c note -s l -d "List notes"
@@ -224,13 +250,17 @@ complete -c note -s s -d "Search notes" -r
 complete -c note -s a -d "Include archived notes"
 complete -c note -s d -d "Archive notes" -r
 complete -c note -l config -d "Run setup/reconfigure"
+complete -c note -l configure -d "Run setup/reconfigure"
 complete -c note -l autocomplete -d "Setup/update command line autocompletion"
 complete -c note -l alias -d "Setup shell aliases"
 complete -c note -s v -l version -d "Show version"
 complete -c note -s h -l help -d "Show help"
 
 # Complete with existing note names for main argument
-complete -c note -n '__fish_is_first_token' -a '(if test -f ~/.note; set notesdir (grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|"); if test -d "$notesdir"; find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \\; 2>/dev/null | sort; end; end)'
+complete -c note -n '__fish_is_first_token' -a '(__note_get_notes)'
+
+# Complete note names after flags that take note arguments
+complete -c note -n '__fish_seen_argument -s l -s a -s d' -a '(__note_get_notes)'
 
 # Alias: n (same as note)
 complete -c n -f
@@ -239,19 +269,21 @@ complete -c n -s s -d "Search notes" -r
 complete -c n -s a -d "Include archived notes"
 complete -c n -s d -d "Archive notes" -r
 complete -c n -l config -d "Run setup/reconfigure"
+complete -c n -l configure -d "Run setup/reconfigure"
 complete -c n -l autocomplete -d "Setup/update command line autocompletion"
 complete -c n -l alias -d "Setup shell aliases"
 complete -c n -s v -l version -d "Show version"
 complete -c n -s h -l help -d "Show help"
-complete -c n -n '__fish_is_first_token' -a '(if test -f ~/.note; set notesdir (grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|"); if test -d "$notesdir"; find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \\; 2>/dev/null | sort; end; end)'
+complete -c n -n '__fish_is_first_token' -a '(__note_get_notes)'
+complete -c n -n '__fish_seen_argument -s l -s a -s d' -a '(__note_get_notes)'
 
 # Alias: nls (note -l)
 complete -c nls -f
-complete -c nls -n '__fish_is_first_token' -a '(if test -f ~/.note; set notesdir (grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|"); if test -d "$notesdir"; find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \\; 2>/dev/null | sort; end; end)'
+complete -c nls -a '(__note_get_notes)'
 
 # Alias: nrm (note -d)
 complete -c nrm -f
-complete -c nrm -n '__fish_is_first_token' -a '(if test -f ~/.note; set notesdir (grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|"); if test -d "$notesdir"; find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \\; 2>/dev/null | sort; end; end)'
+complete -c nrm -a '(__note_get_notes)'
 `
 
 	noteCompletionFile := filepath.Join(fishCompletionDir, "note.fish")
@@ -494,6 +526,41 @@ func generateBashConfig(aliasesEnabled, completionEnabled bool, notePath string)
     local cur="${COMP_WORDS[COMP_CWORD]}"
     local prev="${COMP_WORDS[COMP_CWORD-1]}"
 
+    # Check if -a flag is present in the command line
+    local include_archive=false
+    for word in "${COMP_WORDS[@]}"; do
+        if [[ "$word" == "-a" || "$word" == "-al" || "$word" == "-la" || "$word" == "-as" || "$word" == "-sa" ]]; then
+            include_archive=true
+            break
+        fi
+    done
+
+    # Helper function to get notes
+    _get_notes() {
+        if [[ -f ~/.note ]]; then
+            local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
+            if [[ -d "$notesdir" ]]; then
+                # Get notes from main directory
+                local notes=$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null)
+                # If -a flag is present, also include archived notes
+                if [[ "$include_archive" == true ]]; then
+                    local archivedir="$notesdir/Archive"
+                    if [[ -d "$archivedir" ]]; then
+                        local archived=$(find "$archivedir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sed 's/^/Archive\//')
+                        notes="$notes"$'\n'"$archived"
+                    fi
+                    # Also check lowercase archive
+                    archivedir="$notesdir/archive"
+                    if [[ -d "$archivedir" ]]; then
+                        local archived=$(find "$archivedir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sed 's/^/archive\//')
+                        notes="$notes"$'\n'"$archived"
+                    fi
+                fi
+                echo "$notes" | sort | tr '\n' ' '
+            fi
+        fi
+    }
+
     # If we're on the first argument
     if [[ ${COMP_CWORD} -eq 1 ]]; then
         # If user starts typing a dash, offer flags
@@ -502,40 +569,29 @@ func generateBashConfig(aliasesEnabled, completionEnabled bool, notePath string)
             COMPREPLY=($(compgen -W "$flags" -- "${cur}"))
         else
             # Otherwise, prioritize note names
-            if [[ -f ~/.note ]]; then
-                local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
-                if [[ -d "$notesdir" ]]; then
-                    # Get all .md files and remove the .md extension for easier completion
-                    local notes=$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort | tr '\n' ' ')
-                    # Use case-insensitive matching by converting both to lowercase
-                    local cur_lower=$(echo "$cur" | tr '[:upper:]' '[:lower:]')
-                    COMPREPLY=()
-                    for note in $notes; do
-                        local note_lower=$(echo "$note" | tr '[:upper:]' '[:lower:]')
-                        if [[ "$note_lower" == "$cur_lower"* ]]; then
-                            COMPREPLY+=("$note")
-                        fi
-                    done
+            local notes=$(_get_notes)
+            # Use case-insensitive matching by converting both to lowercase
+            local cur_lower=$(echo "$cur" | tr '[:upper:]' '[:lower:]')
+            COMPREPLY=()
+            for note in $notes; do
+                local note_lower=$(echo "$note" | tr '[:upper:]' '[:lower:]')
+                if [[ "$note_lower" == "$cur_lower"* ]]; then
+                    COMPREPLY+=("$note")
                 fi
-            fi
+            done
         fi
     # If previous was -l, -a, or -d, offer note names
-    elif [[ "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-d" ]]; then
-        if [[ -f ~/.note ]]; then
-            local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
-            if [[ -d "$notesdir" ]]; then
-                local notes=$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort | tr '\n' ' ')
-                # Use case-insensitive matching by converting both to lowercase
-                local cur_lower=$(echo "$cur" | tr '[:upper:]' '[:lower:]')
-                COMPREPLY=()
-                for note in $notes; do
-                    local note_lower=$(echo "$note" | tr '[:upper:]' '[:lower:]')
-                    if [[ "$note_lower" == "$cur_lower"* ]]; then
-                        COMPREPLY+=("$note")
-                    fi
-                done
+    elif [[ "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-d" || "$prev" == "-al" || "$prev" == "-la" ]]; then
+        local notes=$(_get_notes)
+        # Use case-insensitive matching by converting both to lowercase
+        local cur_lower=$(echo "$cur" | tr '[:upper:]' '[:lower:]')
+        COMPREPLY=()
+        for note in $notes; do
+            local note_lower=$(echo "$note" | tr '[:upper:]' '[:lower:]')
+            if [[ "$note_lower" == "$cur_lower"* ]]; then
+                COMPREPLY+=("$note")
             fi
-        fi
+        done
     fi
 }
 
@@ -573,6 +629,46 @@ func generateZshConfig(aliasesEnabled, completionEnabled bool, notePath string) 
     local cur="${words[CURRENT]}"
     local prev="${words[CURRENT-1]}"
 
+    # Check if -a flag is present in the command line
+    local include_archive=false
+    for word in "${words[@]}"; do
+        if [[ "$word" == "-a" || "$word" == "-al" || "$word" == "-la" || "$word" == "-as" || "$word" == "-sa" ]]; then
+            include_archive=true
+            break
+        fi
+    done
+
+    # Helper function to get notes
+    _get_notes() {
+        local notes=()
+        if [[ -f ~/.note ]]; then
+            local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
+            if [[ -d "$notesdir" ]]; then
+                # Get notes from main directory
+                notes+=(${(f)"$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null)"})
+                # If -a flag is present, also include archived notes
+                if [[ "$include_archive" == true ]]; then
+                    local archivedir="$notesdir/Archive"
+                    if [[ -d "$archivedir" ]]; then
+                        local archived=(${(f)"$(find "$archivedir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null)"})
+                        for a in $archived; do
+                            notes+=("Archive/$a")
+                        done
+                    fi
+                    # Also check lowercase archive
+                    archivedir="$notesdir/archive"
+                    if [[ -d "$archivedir" ]]; then
+                        local archived=(${(f)"$(find "$archivedir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null)"})
+                        for a in $archived; do
+                            notes+=("archive/$a")
+                        done
+                    fi
+                fi
+            fi
+        fi
+        echo "${(F)notes}" | sort
+    }
+
     # If we're on the first argument
     if [[ $CURRENT -eq 2 ]]; then
         # If user starts typing a dash, offer flags
@@ -581,41 +677,30 @@ func generateZshConfig(aliasesEnabled, completionEnabled bool, notePath string) 
             compadd -a flags
         else
             # Otherwise, prioritize note names
+            local all_notes=(${(f)"$(_get_notes)"})
             local notes=()
-            if [[ -f ~/.note ]]; then
-                local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
-                if [[ -d "$notesdir" ]]; then
-                    # Get all .md files and remove the .md extension for easier completion
-                    local all_notes=(${(f)"$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)"})
-                    # Filter case-insensitively
-                    local cur_lower="${cur:l}"
-                    for note in $all_notes; do
-                        if [[ "${note:l}" == ${cur_lower}* ]]; then
-                            notes+=("$note")
-                        fi
-                    done
+            # Filter case-insensitively
+            local cur_lower="${cur:l}"
+            for note in $all_notes; do
+                if [[ "${note:l}" == ${cur_lower}* ]]; then
+                    notes+=("$note")
                 fi
-            fi
+            done
             compadd -a notes
         fi
 
-    # If previous was -l, -a, or -d, offer note names
-    elif [[ "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-d" ]]; then
-        if [[ -f ~/.note ]]; then
-            local notesdir=$(grep "^notesdir=" ~/.note | cut -d= -f2 | sed "s|~|$HOME|")
-            if [[ -d "$notesdir" ]]; then
-                local all_notes=(${(f)"$(find "$notesdir" -maxdepth 1 -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sort)"})
-                # Filter case-insensitively
-                local notes=()
-                local cur_lower="${cur:l}"
-                for note in $all_notes; do
-                    if [[ "${note:l}" == ${cur_lower}* ]]; then
-                        notes+=("$note")
-                    fi
-                done
-                compadd -a notes
+    # If previous was -l, -a, -d, or combined flags, offer note names
+    elif [[ "$prev" == "-l" || "$prev" == "-a" || "$prev" == "-d" || "$prev" == "-al" || "$prev" == "-la" ]]; then
+        local all_notes=(${(f)"$(_get_notes)"})
+        # Filter case-insensitively
+        local notes=()
+        local cur_lower="${cur:l}"
+        for note in $all_notes; do
+            if [[ "${note:l}" == ${cur_lower}* ]]; then
+                notes+=("$note")
             fi
-        fi
+        done
+        compadd -a notes
     fi
 }
 

@@ -45,11 +45,11 @@ make install        # Install system-wide (requires sudo)
 make clean          # Clean build artifacts
 
 # Testing Commands
-make test                 # Run unit tests
+make test                 # Run all test suites (unit, integration, completion, setup)
+make test-unit            # Run Go unit tests only
 make integration-test     # Run integration tests
 make completion-test      # Run tab completion tests
-make setup-test          # Run setup/configuration tests
-make test-all            # Run all test suites (180 tests total)
+make setup-test           # Run setup/configuration tests
 
 # Code Quality Commands
 make fmt            # Format Go code
@@ -64,20 +64,20 @@ make bump-major     # Bump major version (0.1.5 -> 1.0.0)
 ### Test Commands
 
 ```bash
-# Unit tests (51 tests)
-go test -v
+# All tests (211 tests total)
+make test
+
+# Unit tests only (61 tests)
+make test-unit
 
 # Integration tests (51 tests)
-./scripts/integration_test.sh
+make integration-test
 
 # Completion tests (28 tests)
-./scripts/completion_test.sh
+make completion-test
 
-# Setup tests (50 tests)
-./scripts/setup_integration_test.sh
-
-# All tests (180 tests total)
-make test-all
+# Setup tests (71 tests)
+make setup-test
 ```
 
 ## Validation Commands
@@ -95,23 +95,11 @@ git diff --exit-code        # Verify fmt made no changes
 make build                  # Build the binary
 ./note --version            # Verify build
 
-# Level 2: Unit Tests (51 tests)
+# Level 2: All Tests (211 tests - REQUIRED before release)
 make test
-
-# Level 3: Integration Tests (51 tests)
-make integration-test
-
-# Level 4: Completion Tests (28 tests)
-make completion-test
-
-# Level 5: Setup Tests (50 tests)
-make setup-test
-
-# Level 6: All Tests (180 tests - REQUIRED before release)
-make test-all
 ```
 
-**Important**: All 180 tests MUST pass before any release. If `make fmt` changes files, commit those changes before proceeding.
+**Important**: All 211 tests MUST pass before any release. If `make fmt` changes files, commit those changes before proceeding.
 
 ## Project Structure
 
@@ -159,7 +147,7 @@ When you add functionality, modify functionality, or fix a bug, you MUST:
 2. **Add unit tests** for the specific functionality/fix in `main_test.go`
 3. **Add integration tests** in the appropriate test script (`scripts/integration_test.sh`, `scripts/completion_test.sh`, or `scripts/setup_integration_test.sh`) if the change affects user workflows
 4. **Verify tests fail** before the fix (for bug fixes) or pass after implementation
-5. **Run all tests** with `make test-all` to ensure no regressions
+5. **Run all tests** with `make test` to ensure no regressions
 
 **Examples of required test coverage**:
 - New feature → Unit tests + integration tests
@@ -171,9 +159,9 @@ When you add functionality, modify functionality, or fix a bug, you MUST:
 
 ### Testing Strategy
 
-The project has **180 automated tests** across four test suites:
+The project has **211 automated tests** across four test suites:
 
-1. **Unit Tests** (51 tests in `main_test.go`)
+1. **Unit Tests** (61 tests in `main_test.go`)
    - Core functionality, path handling, search, configuration
    - Filename generation and matching
    - Flag parsing and chaining
@@ -193,7 +181,7 @@ The project has **180 automated tests** across four test suites:
    - Alias completion for n, nls, nrm
    - Edge cases (empty input, no matches)
 
-4. **Setup Tests** (50 tests in `scripts/setup_integration_test.sh`)
+4. **Setup Tests** (71 tests in `scripts/setup_integration_test.sh`)
    - First-run setup flow
    - Configuration management
    - Shell detection and alias setup
@@ -239,7 +227,7 @@ Use the `/development:release` command for fully automated releases:
    - Runs `make vet` for static analysis
    - Runs `make fmt` to format code
    - Verifies fmt made no changes (stops if it did)
-   - Runs `make test-all` (all 180 tests must pass)
+   - Runs `make test` (all 211 tests must pass)
 
 2. **Commit staged changes** (if any exist)
 
@@ -266,7 +254,7 @@ Use the `/development:release` command for fully automated releases:
 # 1. Clean and validate
 make clean && make vet && make fmt
 git diff --exit-code  # Verify no fmt changes
-make test-all         # All 180 tests must pass
+make test             # All 211 tests must pass
 
 # 2. Generate and commit release notes
 # Manually update RELEASE.md with new version's release notes
@@ -295,7 +283,7 @@ git push origin v0.1.6
 
 ### Release Checklist
 
-- [ ] All 180 tests passing
+- [ ] All 211 tests passing
 - [ ] Code formatted (`make fmt`)
 - [ ] No static analysis warnings (`make vet`)
 - [ ] RELEASE.md updated with new version's release notes (automated in `/development:release`)
@@ -325,7 +313,7 @@ Remember: This is a focused CLI tool following Unix philosophy. Keep changes min
 3. **Implement the change**: Write the actual code
 4. **Verify tests pass**: Ensure new tests pass and no regressions
 5. **Keep it simple**: Resist feature creep
-6. **Run all tests**: Use `make test-all` before committing
+6. **Run all tests**: Use `make test` before committing
 7. **Update docs**: README.md, RELEASE.md, and this file as needed
 8. **Follow conventions**: Match existing code style
 

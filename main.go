@@ -283,22 +283,33 @@ func runSetup() Config {
 		}
 	}
 
-	fmt.Printf("What is your preferred text editor (%s): ", defaultEditor)
-	editor, _ := reader.ReadString('\n')
-	editor = strings.TrimSpace(editor)
-	if editor == "" {
-		editor = defaultEditor
-	}
+	for {
+		fmt.Printf("What is your preferred text editor (%s): ", defaultEditor)
+		editor, _ := reader.ReadString('\n')
+		editor = strings.TrimSpace(editor)
+		if editor == "" {
+			editor = defaultEditor
+		}
 
-	// Validate editor exists
-	if _, err := exec.LookPath(editor); err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: Editor '%s' not found in PATH\n", editor)
-		fmt.Fprintf(os.Stderr, "  Try: 'vim', 'nano', or install your preferred editor\n")
-		os.Exit(1)
-	}
+		// Validate editor exists
+		if _, err := exec.LookPath(editor); err != nil {
+			fmt.Printf("\n⚠ Warning: Editor '%s' was not found in PATH.\n", editor)
+			fmt.Printf("  This may cause issues when opening notes.\n")
+			fmt.Printf("  Common editors: vim, nano, code, emacs, gedit\n\n")
+			fmt.Printf("Use '%s' anyway? (y/N): ", editor)
+			response, _ := reader.ReadString('\n')
+			response = strings.ToLower(strings.TrimSpace(response))
+			if response != "y" && response != "yes" {
+				fmt.Println("Let's try again.")
+				continue
+			}
+			fmt.Printf("Proceeding with '%s' as your editor.\n", editor)
+		}
 
-	fmt.Printf("Setting %s as default text editor...\n", editor)
-	config.Editor = editor
+		fmt.Printf("Setting %s as default text editor...\n", editor)
+		config.Editor = editor
+		break
+	}
 
 	// Ask for notes directory
 	defaultDir := config.NotesDir
@@ -306,16 +317,32 @@ func runSetup() Config {
 		defaultDir = "~/Notes"
 	}
 
-	fmt.Printf("Where are you saving your notes (%s): ", defaultDir)
-	notesDir, _ := reader.ReadString('\n')
-	notesDir = strings.TrimSpace(notesDir)
-	if notesDir == "" {
-		notesDir = defaultDir
-	}
+	for {
+		fmt.Printf("Where are you saving your notes (%s): ", defaultDir)
+		notesDir, _ := reader.ReadString('\n')
+		notesDir = strings.TrimSpace(notesDir)
+		if notesDir == "" {
+			notesDir = defaultDir
+		}
 
-	notesDir = expandPath(notesDir)
-	fmt.Printf("Setting your notes location to %s ...\n", notesDir)
-	config.NotesDir = notesDir
+		notesDir = expandPath(notesDir)
+
+		// Check if directory exists
+		if _, err := os.Stat(notesDir); os.IsNotExist(err) {
+			fmt.Printf("\n⚠ Warning: Directory '%s' does not exist.\n", notesDir)
+			fmt.Printf("Create this directory? (Y/n): ")
+			response, _ := reader.ReadString('\n')
+			response = strings.ToLower(strings.TrimSpace(response))
+			if response == "n" || response == "no" {
+				fmt.Println("Let's try again.")
+				continue
+			}
+		}
+
+		fmt.Printf("Setting your notes location to %s ...\n", notesDir)
+		config.NotesDir = notesDir
+		break
+	}
 
 	// Create directory if it doesn't exist
 	if err := os.MkdirAll(config.NotesDir, 0755); err != nil {
