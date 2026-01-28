@@ -498,7 +498,7 @@ func generateBashConfig(aliasesEnabled, completionEnabled bool, notePath string)
     if [[ ${COMP_CWORD} -eq 1 ]]; then
         # If user starts typing a dash, offer flags
         if [[ "$cur" == -* ]]; then
-            local flags="-l -s -a -d -v --config --autocomplete --alias --help --version -h"
+            local flags="-l -s -a -d -v --config --configure --autocomplete --alias --help --version -h"
             COMPREPLY=($(compgen -W "$flags" -- "${cur}"))
         else
             # Otherwise, prioritize note names
@@ -577,7 +577,7 @@ func generateZshConfig(aliasesEnabled, completionEnabled bool, notePath string) 
     if [[ $CURRENT -eq 2 ]]; then
         # If user starts typing a dash, offer flags
         if [[ "$cur" == -* ]]; then
-            local flags=("-l" "-s" "-a" "-d" "-v" "--config" "--autocomplete" "--alias" "--help" "--version" "-h")
+            local flags=("-l" "-s" "-a" "-d" "-v" "--config" "--configure" "--autocomplete" "--alias" "--help" "--version" "-h")
             compadd -a flags
         else
             # Otherwise, prioritize note names

@@ -828,7 +828,7 @@ func parseFlags(args []string) (*ParsedFlags, []string) {
 			flags.Help = true
 		} else if arg == "--version" {
 			flags.Version = true
-		} else if arg == "--config" {
+		} else if arg == "--config" || arg == "--configure" {
 			flags.Config = true
 		} else if arg == "--autocomplete" {
 			flags.Autocomplete = true
@@ -956,7 +956,7 @@ OPTIONS:
   -v                       Print version number of note
 
   --help                   Show this help message
-  --config                 Run setup/reconfigure
+  --config, --configure    Run setup/reconfigure
   --autocomplete           Setup/update command line autocompletion
   --alias                  Setup/update shell aliases (n, nls, nrm)
   --version                Print version number of note
@@ -985,7 +985,7 @@ ALIASES:
 
 CONFIGURATION:
   Settings are stored in ~/.note
-  Use 'note --config' to reconfigure
+  Use 'note --config' or 'note --configure' to reconfigure
 
 RELEASE:
      Version:    ` + Version + `

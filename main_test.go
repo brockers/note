@@ -509,6 +509,12 @@ func TestParseFlags(t *testing.T) {
 			remaining: []string{},
 		},
 		{
+			name:      "Configure flag (alias for config)",
+			args:      []string{"--configure"},
+			expected:  &ParsedFlags{Config: true},
+			remaining: []string{},
+		},
+		{
 			name:      "Autocomplete flag",
 			args:      []string{"--autocomplete"},
 			expected:  &ParsedFlags{Autocomplete: true},
