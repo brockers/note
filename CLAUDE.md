@@ -330,3 +330,13 @@ Remember: This is a focused CLI tool following Unix philosophy. Keep changes min
 8. **Follow conventions**: Match existing code style
 
 **Remember**: A code change without tests is incomplete work. Always add test coverage.
+
+### Git Workflow Rules
+
+**CRITICAL: Never run `git add`** except for version number bumps during releases.
+
+- The user controls what gets staged via `git add` as a safety check
+- The user uses staging to create logical groupings of commits
+- When asked to commit, only commit what is **already staged**
+- If nothing is staged, inform the user and let them stage the changes
+- Exception: Version bump files during the automated release process may be staged
