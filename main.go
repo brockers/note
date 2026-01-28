@@ -327,8 +327,18 @@ func runSetup() Config {
 
 		notesDir = expandPath(notesDir)
 
-		// Check if directory exists
-		if _, err := os.Stat(notesDir); os.IsNotExist(err) {
+		// Check if path exists and what type it is
+		if info, err := os.Stat(notesDir); err == nil {
+			// Path exists - check if it's a directory
+			if !info.IsDir() {
+				fmt.Printf("\n⚠ Warning: '%s' exists but is a file, not a directory.\n", notesDir)
+				fmt.Printf("Please enter a different path.\n")
+				fmt.Println("Let's try again.")
+				continue
+			}
+			// Path exists and is a directory - good to go
+		} else if os.IsNotExist(err) {
+			// Path doesn't exist - ask to create
 			fmt.Printf("\n⚠ Warning: Directory '%s' does not exist.\n", notesDir)
 			fmt.Printf("Create this directory? (Y/n): ")
 			response, _ := reader.ReadString('\n')

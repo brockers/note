@@ -523,7 +523,30 @@ run_test "Non-existent directory was NOT created" \
 cleanup_test_env "$TEST_ENV"
 unset HOME
 
-# Test 6.5: Permission denied handling
+# Test 6.5: File exists at path - user must enter different path
+TEST_ENV=$(setup_test_env "file-exists")
+export HOME="$TEST_ENV"
+
+# Create a file (not directory) at the path user will try to use
+touch "$TEST_ENV/myfile"
+
+# Create a valid directory for the retry
+mkdir -p "$TEST_ENV/ValidNotes"
+
+# Test: user enters path to a file, gets warning, then enters valid directory
+# Input: vim -> ~/myfile (exists as file) -> ~/ValidNotes -> n -> n
+simulate_input "vim\n~/myfile\n~/ValidNotes\nn\nn\n" | timeout 10 $NOTE_CMD > /dev/null 2>&1 || true
+
+run_test "File path rejected, valid directory used" \
+    "test -f $TEST_ENV/.note && grep -q 'notesdir=~/ValidNotes' $TEST_ENV/.note"
+
+run_test "File was not converted to directory" \
+    "test -f $TEST_ENV/myfile && ! test -d $TEST_ENV/myfile"
+
+cleanup_test_env "$TEST_ENV"
+unset HOME
+
+# Test 6.6: Permission denied handling
 TEST_ENV=$(setup_test_env "perms-denied")
 export HOME="$TEST_ENV"
 
@@ -541,7 +564,7 @@ chmod 755 "$TEST_ENV/readonly"
 cleanup_test_env "$TEST_ENV"
 unset HOME
 
-# Test 6.6: Config file corruption recovery
+# Test 6.7: Config file corruption recovery
 TEST_ENV=$(setup_test_env "corrupt-config")
 export HOME="$TEST_ENV"
 
