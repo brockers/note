@@ -53,7 +53,8 @@
       "Bash(echo \"Exit code: $?\")",
       "Bash(echo:*)",
       "Bash(git push:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git describe:*)"
     ],
     "deny": []
   }
