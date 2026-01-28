@@ -1,5 +1,35 @@
 # Release Notes
 
+## Version 0.1.6
+
+**Release Date:** January 28, 2026
+
+### What's New
+
+#### Features
+- **Archive-aware tab completion**: Tab completion now respects the `-a` flag for archive operations, improving workflow when working with archived notes (cded6fd)
+- **`--configure` flag alias**: Added `--configure` as an alias for `--config` flag for improved discoverability (e79f42a)
+- **Automatic release notes generation**: Release workflow now automatically generates categorized release notes from git commits (afccb59)
+
+#### Bug Fixes
+- **Setup file path validation**: Setup now properly rejects file paths (vs directories) when prompting for notes directory, with clear user feedback (f829154)
+- **Shell alias completion**: Fixed tab completion for shell aliases `n`, `nls`, and `nrm` (762ac0d)
+
+#### Refactoring
+- **Centralized shell configuration**: Implemented centralized shell configuration files for cleaner shell integration (104c405)
+
+#### Documentation
+- **Git workflow rules**: Added git workflow rules to CLAUDE.md to prevent unauthorized staging (f3d9dac)
+- **Related projects**: Added related projects section to README with mark bookmark utility (0aa0f87)
+- **v0.1.5 documentation**: Added comprehensive documentation for v0.1.5 first official release (289e2df)
+
+### Test Coverage
+- **165+ automated tests** across unit, integration, completion, and setup test suites
+- New tests for file path rejection during setup
+- Enhanced completion test infrastructure
+
+---
+
 ## 🎉 Version 0.1.5 - First Official Release
 
 **Release Date:** January 12, 2026
