@@ -768,6 +768,606 @@ func TestParseFlagsErrorCases(t *testing.T) {
 	}
 }
 
+func TestGenerateBashConfig(t *testing.T) {
+	notePath := "/usr/local/bin/note"
+
+	tests := []struct {
+		name              string
+		aliasesEnabled    bool
+		completionEnabled bool
+		expectAliases     bool
+		expectCompletion  bool
+	}{
+		{
+			name:              "Both aliases and completion enabled",
+			aliasesEnabled:    true,
+			completionEnabled: true,
+			expectAliases:     true,
+			expectCompletion:  true,
+		},
+		{
+			name:              "Only aliases enabled",
+			aliasesEnabled:    true,
+			completionEnabled: false,
+			expectAliases:     true,
+			expectCompletion:  false,
+		},
+		{
+			name:              "Only completion enabled",
+			aliasesEnabled:    false,
+			completionEnabled: true,
+			expectAliases:     false,
+			expectCompletion:  true,
+		},
+		{
+			name:              "Neither enabled",
+			aliasesEnabled:    false,
+			completionEnabled: false,
+			expectAliases:     false,
+			expectCompletion:  false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			content := generateBashConfig(test.aliasesEnabled, test.completionEnabled, notePath)
+
+			// Check header is always present
+			if !strings.Contains(content, "Note CLI Shell Integration") {
+				t.Error("Missing header in generated config")
+			}
+
+			// Check aliases section
+			hasAliases := strings.Contains(content, "# ============= ALIASES =============")
+			if hasAliases != test.expectAliases {
+				t.Errorf("Aliases section: got %v, want %v", hasAliases, test.expectAliases)
+			}
+
+			if test.expectAliases {
+				if !strings.Contains(content, "alias n='"+notePath+"'") {
+					t.Error("Missing n alias")
+				}
+				if !strings.Contains(content, "alias nls='"+notePath+" -l'") {
+					t.Error("Missing nls alias")
+				}
+				if !strings.Contains(content, "alias nrm='"+notePath+" -d'") {
+					t.Error("Missing nrm alias")
+				}
+			}
+
+			// Check completion section
+			hasCompletion := strings.Contains(content, "# ============= COMPLETION =============")
+			if hasCompletion != test.expectCompletion {
+				t.Errorf("Completion section: got %v, want %v", hasCompletion, test.expectCompletion)
+			}
+
+			if test.expectCompletion {
+				if !strings.Contains(content, "_note_complete()") {
+					t.Error("Missing completion function")
+				}
+				if !strings.Contains(content, "complete -F _note_complete note") {
+					t.Error("Missing completion registration")
+				}
+			}
+		})
+	}
+}
+
+func TestGenerateZshConfig(t *testing.T) {
+	notePath := "/usr/local/bin/note"
+
+	tests := []struct {
+		name              string
+		aliasesEnabled    bool
+		completionEnabled bool
+		expectAliases     bool
+		expectCompletion  bool
+	}{
+		{
+			name:              "Both aliases and completion enabled",
+			aliasesEnabled:    true,
+			completionEnabled: true,
+			expectAliases:     true,
+			expectCompletion:  true,
+		},
+		{
+			name:              "Only aliases enabled",
+			aliasesEnabled:    true,
+			completionEnabled: false,
+			expectAliases:     true,
+			expectCompletion:  false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			content := generateZshConfig(test.aliasesEnabled, test.completionEnabled, notePath)
+
+			// Check header is always present
+			if !strings.Contains(content, "Note CLI Shell Integration") {
+				t.Error("Missing header in generated config")
+			}
+
+			// Check aliases section
+			hasAliases := strings.Contains(content, "# ============= ALIASES =============")
+			if hasAliases != test.expectAliases {
+				t.Errorf("Aliases section: got %v, want %v", hasAliases, test.expectAliases)
+			}
+
+			// Check completion section
+			hasCompletion := strings.Contains(content, "# ============= COMPLETION =============")
+			if hasCompletion != test.expectCompletion {
+				t.Errorf("Completion section: got %v, want %v", hasCompletion, test.expectCompletion)
+			}
+
+			if test.expectCompletion {
+				if !strings.Contains(content, "compdef _note_complete note") {
+					t.Error("Missing zsh completion registration")
+				}
+				if !strings.Contains(content, "autoload -U +X compinit") {
+					t.Error("Missing compinit initialization")
+				}
+			}
+		})
+	}
+}
+
+func TestGenerateFishConfig(t *testing.T) {
+	notePath := "/usr/local/bin/note"
+
+	tests := []struct {
+		name           string
+		aliasesEnabled bool
+		expectAliases  bool
+	}{
+		{
+			name:           "Aliases enabled",
+			aliasesEnabled: true,
+			expectAliases:  true,
+		},
+		{
+			name:           "Aliases disabled",
+			aliasesEnabled: false,
+			expectAliases:  false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			content := generateFishConfig(test.aliasesEnabled, notePath)
+
+			// Check header is always present
+			if !strings.Contains(content, "Note CLI Shell Integration") {
+				t.Error("Missing header in generated config")
+			}
+
+			// Check aliases section
+			hasAliases := strings.Contains(content, "# ============= ALIASES =============")
+			if hasAliases != test.expectAliases {
+				t.Errorf("Aliases section: got %v, want %v", hasAliases, test.expectAliases)
+			}
+
+			if test.expectAliases {
+				// Fish uses space instead of = for aliases
+				if !strings.Contains(content, "alias n '"+notePath+"'") {
+					t.Error("Missing n alias")
+				}
+				if !strings.Contains(content, "alias nls '"+notePath+" -l'") {
+					t.Error("Missing nls alias")
+				}
+				if !strings.Contains(content, "alias nrm '"+notePath+" -d'") {
+					t.Error("Missing nrm alias")
+				}
+			}
+		})
+	}
+}
+
+func TestWriteCentralizedConfig(t *testing.T) {
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "note-centralized-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Save original HOME
+	originalHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", originalHome)
+
+	// Set temporary HOME
+	os.Setenv("HOME", tempDir)
+
+	tests := []struct {
+		name              string
+		shell             string
+		aliasesEnabled    bool
+		completionEnabled bool
+		expectedFile      string
+	}{
+		{
+			name:              "Bash config with both",
+			shell:             "bash",
+			aliasesEnabled:    true,
+			completionEnabled: true,
+			expectedFile:      BashCentralizedConfig,
+		},
+		{
+			name:              "Zsh config with aliases only",
+			shell:             "zsh",
+			aliasesEnabled:    true,
+			completionEnabled: false,
+			expectedFile:      ZshCentralizedConfig,
+		},
+		{
+			name:              "Fish config with aliases",
+			shell:             "fish",
+			aliasesEnabled:    true,
+			completionEnabled: false,
+			expectedFile:      FishCentralizedConfig,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := WriteCentralizedConfig(test.shell, test.aliasesEnabled, test.completionEnabled)
+			if err != nil {
+				t.Fatalf("WriteCentralizedConfig failed: %v", err)
+			}
+
+			// Check file was created
+			configPath := filepath.Join(tempDir, test.expectedFile)
+			if _, err := os.Stat(configPath); os.IsNotExist(err) {
+				t.Errorf("Config file not created: %s", configPath)
+			}
+
+			// Read and verify content
+			content, err := os.ReadFile(configPath)
+			if err != nil {
+				t.Fatalf("Failed to read config file: %v", err)
+			}
+
+			if !strings.Contains(string(content), "Note CLI Shell Integration") {
+				t.Error("Config file missing header")
+			}
+		})
+	}
+
+	// Test unsupported shell
+	t.Run("Unsupported shell", func(t *testing.T) {
+		err := WriteCentralizedConfig("unsupported", true, true)
+		if err == nil {
+			t.Error("Expected error for unsupported shell")
+		}
+	})
+}
+
+func TestEnsureSourceLine(t *testing.T) {
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "note-sourceline-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Save original HOME
+	originalHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", originalHome)
+
+	// Set temporary HOME
+	os.Setenv("HOME", tempDir)
+
+	// Test bash source line
+	t.Run("Bash source line", func(t *testing.T) {
+		bashrc := filepath.Join(tempDir, ".bashrc")
+		os.WriteFile(bashrc, []byte("# existing content\n"), 0644)
+
+		err := EnsureSourceLine("bash")
+		if err != nil {
+			t.Fatalf("EnsureSourceLine failed: %v", err)
+		}
+
+		content, _ := os.ReadFile(bashrc)
+		if !strings.Contains(string(content), BashCentralizedConfig) {
+			t.Error("Source line not added to .bashrc")
+		}
+		if !strings.Contains(string(content), "# Note CLI integration") {
+			t.Error("Missing integration comment")
+		}
+
+		// Call again - should not duplicate
+		err = EnsureSourceLine("bash")
+		if err != nil {
+			t.Fatalf("Second EnsureSourceLine failed: %v", err)
+		}
+
+		content, _ = os.ReadFile(bashrc)
+		// The config file name appears twice in one source line: "[ -f ~/.note_bash_rc ] && source ~/.note_bash_rc"
+		// So we check for the comment header instead which should only appear once
+		count := strings.Count(string(content), "# Note CLI integration")
+		if count != 1 {
+			t.Errorf("Source line duplicated: found %d integration comments", count)
+		}
+	})
+
+	// Test zsh source line
+	t.Run("Zsh source line", func(t *testing.T) {
+		zshrc := filepath.Join(tempDir, ".zshrc")
+		os.WriteFile(zshrc, []byte("# existing content\n"), 0644)
+
+		err := EnsureSourceLine("zsh")
+		if err != nil {
+			t.Fatalf("EnsureSourceLine failed: %v", err)
+		}
+
+		content, _ := os.ReadFile(zshrc)
+		if !strings.Contains(string(content), ZshCentralizedConfig) {
+			t.Error("Source line not added to .zshrc")
+		}
+	})
+
+	// Test fish source line
+	t.Run("Fish source line", func(t *testing.T) {
+		fishConfigDir := filepath.Join(tempDir, ".config", "fish")
+		os.MkdirAll(fishConfigDir, 0755)
+		fishConfig := filepath.Join(fishConfigDir, "config.fish")
+		os.WriteFile(fishConfig, []byte("# existing content\n"), 0644)
+
+		err := EnsureSourceLine("fish")
+		if err != nil {
+			t.Fatalf("EnsureSourceLine failed: %v", err)
+		}
+
+		content, _ := os.ReadFile(fishConfig)
+		if !strings.Contains(string(content), FishCentralizedConfig) {
+			t.Error("Source line not added to config.fish")
+		}
+		// Fish uses different syntax
+		if !strings.Contains(string(content), "test -f") {
+			t.Error("Missing fish test syntax")
+		}
+	})
+}
+
+func TestGetCentralizedConfigStatus(t *testing.T) {
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "note-status-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Save original HOME
+	originalHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", originalHome)
+
+	// Set temporary HOME
+	os.Setenv("HOME", tempDir)
+
+	// Test with no config file
+	t.Run("No config file", func(t *testing.T) {
+		hasAliases, hasCompletion := GetCentralizedConfigStatus("bash")
+		if hasAliases || hasCompletion {
+			t.Error("Should return false when no config exists")
+		}
+	})
+
+	// Test with aliases only
+	t.Run("Aliases only", func(t *testing.T) {
+		configPath := filepath.Join(tempDir, BashCentralizedConfig)
+		content := "# Note CLI Shell Integration\n# ============= ALIASES =============\nalias n='/usr/bin/note'\n"
+		os.WriteFile(configPath, []byte(content), 0644)
+
+		hasAliases, hasCompletion := GetCentralizedConfigStatus("bash")
+		if !hasAliases {
+			t.Error("Should detect aliases")
+		}
+		if hasCompletion {
+			t.Error("Should not detect completion")
+		}
+
+		os.Remove(configPath)
+	})
+
+	// Test with both
+	t.Run("Both aliases and completion", func(t *testing.T) {
+		configPath := filepath.Join(tempDir, BashCentralizedConfig)
+		content := "# Note CLI Shell Integration\n# ============= ALIASES =============\nalias n='/usr/bin/note'\n# ============= COMPLETION =============\n_note_complete() {}\n"
+		os.WriteFile(configPath, []byte(content), 0644)
+
+		hasAliases, hasCompletion := GetCentralizedConfigStatus("bash")
+		if !hasAliases {
+			t.Error("Should detect aliases")
+		}
+		if !hasCompletion {
+			t.Error("Should detect completion")
+		}
+
+		os.Remove(configPath)
+	})
+
+	// Test fish completion detection (stored separately)
+	t.Run("Fish completion detection", func(t *testing.T) {
+		fishCompletionDir := filepath.Join(tempDir, ".config", "fish", "completions")
+		os.MkdirAll(fishCompletionDir, 0755)
+		fishCompletionFile := filepath.Join(fishCompletionDir, "note.fish")
+		os.WriteFile(fishCompletionFile, []byte("# fish completion\n"), 0644)
+
+		hasAliases, hasCompletion := GetCentralizedConfigStatus("fish")
+		if hasAliases {
+			t.Error("Should not detect aliases without config file")
+		}
+		if !hasCompletion {
+			t.Error("Should detect fish completion from standard location")
+		}
+	})
+}
+
+func TestCleanupLegacyConfig(t *testing.T) {
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "note-cleanup-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Save original HOME
+	originalHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", originalHome)
+
+	// Set temporary HOME
+	os.Setenv("HOME", tempDir)
+
+	// Test bash cleanup
+	t.Run("Bash legacy cleanup", func(t *testing.T) {
+		// Create legacy .note.bash file
+		legacyFile := filepath.Join(tempDir, ".note.bash")
+		os.WriteFile(legacyFile, []byte("# legacy completion\n"), 0644)
+
+		// Create .bashrc with legacy content
+		bashrc := filepath.Join(tempDir, ".bashrc")
+		bashrcContent := `# other config
+export PATH=$PATH:/usr/bin
+# note command aliases
+alias n='/usr/bin/note'
+alias nls='/usr/bin/note -l'
+alias nrm='/usr/bin/note -d'
+# more config
+export EDITOR=vim
+`
+		os.WriteFile(bashrc, []byte(bashrcContent), 0644)
+
+		err := CleanupLegacyConfig("bash")
+		if err != nil {
+			t.Fatalf("CleanupLegacyConfig failed: %v", err)
+		}
+
+		// Check legacy file was removed
+		if _, err := os.Stat(legacyFile); !os.IsNotExist(err) {
+			t.Error("Legacy .note.bash file should be removed")
+		}
+
+		// Check bashrc was cleaned
+		content, _ := os.ReadFile(bashrc)
+		contentStr := string(content)
+		if strings.Contains(contentStr, "alias n=") {
+			t.Error("Legacy alias should be removed from .bashrc")
+		}
+		if !strings.Contains(contentStr, "export PATH") {
+			t.Error("Non-note config should be preserved")
+		}
+		if !strings.Contains(contentStr, "export EDITOR") {
+			t.Error("Non-note config should be preserved")
+		}
+	})
+
+	// Test zsh cleanup
+	t.Run("Zsh legacy cleanup", func(t *testing.T) {
+		// Create legacy .note.zsh file
+		legacyFile := filepath.Join(tempDir, ".note.zsh")
+		os.WriteFile(legacyFile, []byte("# legacy completion\n"), 0644)
+
+		err := CleanupLegacyConfig("zsh")
+		if err != nil {
+			t.Fatalf("CleanupLegacyConfig failed: %v", err)
+		}
+
+		// Check legacy file was removed
+		if _, err := os.Stat(legacyFile); !os.IsNotExist(err) {
+			t.Error("Legacy .note.zsh file should be removed")
+		}
+	})
+
+	// Test fish cleanup
+	t.Run("Fish legacy cleanup", func(t *testing.T) {
+		fishConfigDir := filepath.Join(tempDir, ".config", "fish")
+		os.MkdirAll(fishConfigDir, 0755)
+		fishConfig := filepath.Join(fishConfigDir, "config.fish")
+		fishContent := `# other config
+set -x PATH $PATH /usr/bin
+# note command aliases
+alias n '/usr/bin/note'
+alias nls '/usr/bin/note -l'
+alias nrm '/usr/bin/note -d'
+# more config
+set -x EDITOR vim
+`
+		os.WriteFile(fishConfig, []byte(fishContent), 0644)
+
+		err := CleanupLegacyConfig("fish")
+		if err != nil {
+			t.Fatalf("CleanupLegacyConfig failed: %v", err)
+		}
+
+		// Check fish config was cleaned
+		content, _ := os.ReadFile(fishConfig)
+		contentStr := string(content)
+		if strings.Contains(contentStr, "alias n ") && strings.Contains(contentStr, "note") {
+			t.Error("Legacy fish alias should be removed")
+		}
+		if !strings.Contains(contentStr, "set -x PATH") {
+			t.Error("Non-note config should be preserved")
+		}
+	})
+}
+
+func TestAreAliasesAlreadySetupWithCentralizedConfig(t *testing.T) {
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "note-aliases-central-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Save original HOME and SHELL
+	originalHome := os.Getenv("HOME")
+	originalShell := os.Getenv("SHELL")
+	defer func() {
+		os.Setenv("HOME", originalHome)
+		os.Setenv("SHELL", originalShell)
+	}()
+
+	// Set temporary HOME
+	os.Setenv("HOME", tempDir)
+	os.Setenv("SHELL", "/bin/bash")
+
+	// Test with no config
+	t.Run("No config", func(t *testing.T) {
+		result := areAliasesAlreadySetup()
+		if result {
+			t.Error("Should return false when no config exists")
+		}
+	})
+
+	// Test with centralized config containing aliases
+	t.Run("Centralized config with aliases", func(t *testing.T) {
+		configPath := filepath.Join(tempDir, BashCentralizedConfig)
+		content := "# Note CLI Shell Integration\n# ============= ALIASES =============\nalias n='/usr/bin/note'\nalias nls='/usr/bin/note -l'\nalias nrm='/usr/bin/note -d'\n"
+		os.WriteFile(configPath, []byte(content), 0644)
+
+		result := areAliasesAlreadySetup()
+		if !result {
+			t.Error("Should detect aliases in centralized config")
+		}
+
+		os.Remove(configPath)
+	})
+
+	// Test with centralized config without aliases (completion only)
+	t.Run("Centralized config without aliases", func(t *testing.T) {
+		configPath := filepath.Join(tempDir, BashCentralizedConfig)
+		content := "# Note CLI Shell Integration\n# ============= COMPLETION =============\n_note_complete() {}\n"
+		os.WriteFile(configPath, []byte(content), 0644)
+
+		result := areAliasesAlreadySetup()
+		if result {
+			t.Error("Should not detect aliases when only completion exists")
+		}
+
+		os.Remove(configPath)
+	})
+}
+
 func TestParseFlagsEdgeCases(t *testing.T) {
 	tests := []struct {
 		name      string

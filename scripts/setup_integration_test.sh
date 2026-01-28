@@ -331,11 +331,14 @@ mkdir -p "$TEST_ENV/Notes/Archive"
 # Simulate autocomplete setup (with timeout to prevent hanging)
 simulate_input "y\n" | timeout 10 $NOTE_CMD --autocomplete > /dev/null 2>&1 || true
 
-run_test "Bash completion script created" \
-    "test -f $TEST_ENV/.note.bash"
+run_test "Bash centralized config created" \
+    "test -f $TEST_ENV/.note_bash_rc"
 
-run_test "Bashrc updated for completion" \
-    "grep -q 'note.bash' $TEST_ENV/.bashrc || test -f $TEST_ENV/.note.bash"
+run_test "Bashrc updated for centralized config" \
+    "grep -q 'note_bash_rc' $TEST_ENV/.bashrc"
+
+run_test "Bash centralized config contains completion" \
+    "grep -q '# ============= COMPLETION =============' $TEST_ENV/.note_bash_rc"
 
 cleanup_test_env "$TEST_ENV"
 unset SHELL
@@ -356,8 +359,11 @@ mkdir -p "$TEST_ENV/Notes/Archive"
 
 simulate_input "y\n" | timeout 10 $NOTE_CMD --autocomplete > /dev/null 2>&1 || true
 
-run_test "Zsh completion script created" \
-    "test -f $TEST_ENV/.note.zsh"
+run_test "Zsh centralized config created" \
+    "test -f $TEST_ENV/.note_zsh_rc"
+
+run_test "Zshrc updated for centralized config" \
+    "grep -q 'note_zsh_rc' $TEST_ENV/.zshrc"
 
 cleanup_test_env "$TEST_ENV"
 unset SHELL
@@ -743,6 +749,184 @@ else
 fi
 
 cleanup_test_env "$TEST_ENV"
+unset HOME
+
+echo
+echo "=== Test Suite 10: Centralized Shell Configuration ==="
+echo
+
+# Test 10.1: Centralized bash config with both aliases and completion
+TEST_ENV=$(setup_test_env "centralized-bash")
+export HOME="$TEST_ENV"
+export SHELL="/bin/bash"
+touch "$TEST_ENV/.bashrc"
+
+# Create a basic config first
+cat > "$TEST_ENV/.note" << EOF
+editor=vim
+notesdir=$TEST_ENV/Notes
+EOF
+mkdir -p "$TEST_ENV/Notes/Archive"
+
+# Setup completion first
+simulate_input "y\n" | timeout 10 $NOTE_CMD --autocomplete > /dev/null 2>&1 || true
+
+run_test "Centralized bash config created after completion" \
+    "test -f $TEST_ENV/.note_bash_rc"
+
+# Now setup aliases
+simulate_input "y\n" | timeout 10 $NOTE_CMD --alias > /dev/null 2>&1 || true
+
+run_test "Centralized config has aliases section" \
+    "grep -q '# ============= ALIASES =============' $TEST_ENV/.note_bash_rc"
+
+run_test "Centralized config preserved completion section" \
+    "grep -q '# ============= COMPLETION =============' $TEST_ENV/.note_bash_rc"
+
+run_test "Bashrc has single source line" \
+    "test $(grep -c 'note_bash_rc' $TEST_ENV/.bashrc) -eq 1"
+
+cleanup_test_env "$TEST_ENV"
+unset SHELL
+unset HOME
+
+# Test 10.2: Centralized zsh config
+TEST_ENV=$(setup_test_env "centralized-zsh")
+export HOME="$TEST_ENV"
+export SHELL="/bin/zsh"
+touch "$TEST_ENV/.zshrc"
+
+# Create a basic config first
+cat > "$TEST_ENV/.note" << EOF
+editor=vim
+notesdir=$TEST_ENV/Notes
+EOF
+mkdir -p "$TEST_ENV/Notes/Archive"
+
+# Setup both aliases and completion
+simulate_input "y\n" | timeout 10 $NOTE_CMD --autocomplete > /dev/null 2>&1 || true
+simulate_input "y\n" | timeout 10 $NOTE_CMD --alias > /dev/null 2>&1 || true
+
+run_test "Zsh centralized config has both sections" \
+    "grep -q '# ============= ALIASES =============' $TEST_ENV/.note_zsh_rc && grep -q '# ============= COMPLETION =============' $TEST_ENV/.note_zsh_rc"
+
+run_test "Zshrc has source line" \
+    "grep -q 'note_zsh_rc' $TEST_ENV/.zshrc"
+
+cleanup_test_env "$TEST_ENV"
+unset SHELL
+unset HOME
+
+# Test 10.3: Fish centralized config
+TEST_ENV=$(setup_test_env "centralized-fish")
+export HOME="$TEST_ENV"
+export SHELL="/usr/bin/fish"
+mkdir -p "$TEST_ENV/.config/fish/completions"
+touch "$TEST_ENV/.config/fish/config.fish"
+
+# Create a basic config first
+cat > "$TEST_ENV/.note" << EOF
+editor=vim
+notesdir=$TEST_ENV/Notes
+EOF
+mkdir -p "$TEST_ENV/Notes/Archive"
+
+# Setup aliases
+simulate_input "y\n" | timeout 10 $NOTE_CMD --alias > /dev/null 2>&1 || true
+
+run_test "Fish centralized config created" \
+    "test -f $TEST_ENV/.note_fish_rc"
+
+run_test "Fish config.fish has source line" \
+    "grep -q 'note_fish_rc' $TEST_ENV/.config/fish/config.fish"
+
+# Fish completion should still use standard location
+simulate_input "y\n" | timeout 10 $NOTE_CMD --autocomplete > /dev/null 2>&1 || true
+
+run_test "Fish completion in standard location" \
+    "test -f $TEST_ENV/.config/fish/completions/note.fish"
+
+cleanup_test_env "$TEST_ENV"
+unset SHELL
+unset HOME
+
+# Test 10.4: Legacy config cleanup via --autocomplete
+# Note: --alias detects existing aliases and skips setup, but --autocomplete
+# runs cleanup as part of its process and creates the centralized config
+TEST_ENV=$(setup_test_env "legacy-cleanup")
+export HOME="$TEST_ENV"
+export SHELL="/bin/bash"
+
+# Create legacy config files
+touch "$TEST_ENV/.bashrc"
+echo "# legacy content" > "$TEST_ENV/.note.bash"
+cat >> "$TEST_ENV/.bashrc" << 'EOF'
+# some existing config
+export PATH=$PATH:/usr/bin
+
+# note command completion
+source ~/.note.bash
+
+# more config
+export EDITOR=vim
+EOF
+
+# Create a basic config
+cat > "$TEST_ENV/.note" << EOF
+editor=vim
+notesdir=$TEST_ENV/Notes
+EOF
+mkdir -p "$TEST_ENV/Notes/Archive"
+
+# Run autocomplete setup which should clean up legacy and create centralized
+simulate_input "y\n" | timeout 10 $NOTE_CMD --autocomplete > /dev/null 2>&1 || true
+
+run_test "Legacy .note.bash removed" \
+    "! test -f $TEST_ENV/.note.bash"
+
+run_test "Legacy source line removed from bashrc" \
+    "! grep -q 'source ~/\\.note\\.bash$' $TEST_ENV/.bashrc"
+
+run_test "Non-note config preserved in bashrc" \
+    "grep -q 'export PATH' $TEST_ENV/.bashrc && grep -q 'export EDITOR' $TEST_ENV/.bashrc"
+
+run_test "New centralized config created" \
+    "test -f $TEST_ENV/.note_bash_rc"
+
+cleanup_test_env "$TEST_ENV"
+unset SHELL
+unset HOME
+
+# Test 10.5: Config regeneration
+TEST_ENV=$(setup_test_env "config-regen")
+export HOME="$TEST_ENV"
+export SHELL="/bin/bash"
+touch "$TEST_ENV/.bashrc"
+
+# Create a basic config
+cat > "$TEST_ENV/.note" << EOF
+editor=vim
+notesdir=$TEST_ENV/Notes
+EOF
+mkdir -p "$TEST_ENV/Notes/Archive"
+
+# Create initial centralized config with aliases
+simulate_input "y\n" | timeout 10 $NOTE_CMD --alias > /dev/null 2>&1 || true
+
+# Get initial config content
+INITIAL_CONTENT=$(cat "$TEST_ENV/.note_bash_rc")
+
+# Run alias setup again - should regenerate without duplication
+simulate_input "y\n" | timeout 10 $NOTE_CMD --alias > /dev/null 2>&1 || true
+
+run_test "Config regeneration doesn't duplicate" \
+    "test $(grep -c 'alias n=' $TEST_ENV/.note_bash_rc) -eq 1"
+
+run_test "Source line not duplicated" \
+    "test $(grep -c 'note_bash_rc' $TEST_ENV/.bashrc) -le 2"
+
+cleanup_test_env "$TEST_ENV"
+unset SHELL
 unset HOME
 
 # Summary

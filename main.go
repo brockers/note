@@ -401,12 +401,20 @@ func setupAliases(reader *bufio.Reader) {
 }
 
 func areAliasesAlreadySetup() bool {
+	shell := detectShell()
+
+	// First check centralized config
+	hasAliases, _ := GetCentralizedConfigStatus(shell)
+	if hasAliases {
+		return true
+	}
+
+	// Fall back to checking legacy locations for backward compatibility
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return false
 	}
 
-	shell := detectShell()
 	switch shell {
 	case "bash":
 		bashrc := filepath.Join(homeDir, ".bashrc")
@@ -437,36 +445,27 @@ func setupBashAliases() {
 		return
 	}
 
-	bashrcPath := filepath.Join(homeDir, ".bashrc")
+	// Get current completion status to preserve it
+	_, hasCompletion := GetCentralizedConfigStatus("bash")
 
-	// Get the full path to the note binary
-	notePath, err := os.Executable()
-	if err != nil {
-		// Fallback to checking PATH
-		notePath, err = exec.LookPath("note")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Could not determine note command path: %v\n", err)
-			return
-		}
-	}
-
-	aliasLines := fmt.Sprintf("\n# note command aliases\nalias n='%s'\nalias nls='%s -l'\nalias nrm='%s -d'\n", notePath, notePath, notePath)
-
-	// Append to .bashrc
-	file, err := os.OpenFile(bashrcPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening .bashrc: %v\n", err)
-		return
-	}
-	defer file.Close()
-
-	if _, err := file.WriteString(aliasLines); err != nil {
-		fmt.Fprintf(os.Stderr, "Error writing aliases to .bashrc: %v\n", err)
+	// Write centralized config with aliases enabled
+	if err := WriteCentralizedConfig("bash", true, hasCompletion); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing centralized config: %v\n", err)
 		return
 	}
 
+	// Ensure source line exists in .bashrc
+	if err := EnsureSourceLine("bash"); err != nil {
+		fmt.Fprintf(os.Stderr, "Error adding source line: %v\n", err)
+		return
+	}
+
+	// Clean up legacy config
+	CleanupLegacyConfig("bash")
+
+	configPath := filepath.Join(homeDir, BashCentralizedConfig)
 	fmt.Printf("✓ Bash aliases setup complete!\n")
-	fmt.Printf("  Added 'n', 'nls', and 'nrm' aliases to %s\n", bashrcPath)
+	fmt.Printf("  Created centralized config at %s\n", configPath)
 	fmt.Printf("  Run 'source ~/.bashrc' or restart your shell to activate aliases\n")
 }
 
@@ -477,36 +476,27 @@ func setupZshAliases() {
 		return
 	}
 
-	zshrcPath := filepath.Join(homeDir, ".zshrc")
+	// Get current completion status to preserve it
+	_, hasCompletion := GetCentralizedConfigStatus("zsh")
 
-	// Get the full path to the note binary
-	notePath, err := os.Executable()
-	if err != nil {
-		// Fallback to checking PATH
-		notePath, err = exec.LookPath("note")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Could not determine note command path: %v\n", err)
-			return
-		}
-	}
-
-	aliasLines := fmt.Sprintf("\n# note command aliases\nalias n='%s'\nalias nls='%s -l'\nalias nrm='%s -d'\n", notePath, notePath, notePath)
-
-	// Append to .zshrc
-	file, err := os.OpenFile(zshrcPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening .zshrc: %v\n", err)
-		return
-	}
-	defer file.Close()
-
-	if _, err := file.WriteString(aliasLines); err != nil {
-		fmt.Fprintf(os.Stderr, "Error writing aliases to .zshrc: %v\n", err)
+	// Write centralized config with aliases enabled
+	if err := WriteCentralizedConfig("zsh", true, hasCompletion); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing centralized config: %v\n", err)
 		return
 	}
 
+	// Ensure source line exists in .zshrc
+	if err := EnsureSourceLine("zsh"); err != nil {
+		fmt.Fprintf(os.Stderr, "Error adding source line: %v\n", err)
+		return
+	}
+
+	// Clean up legacy config
+	CleanupLegacyConfig("zsh")
+
+	configPath := filepath.Join(homeDir, ZshCentralizedConfig)
 	fmt.Printf("✓ Zsh aliases setup complete!\n")
-	fmt.Printf("  Added 'n', 'nls', and 'nrm' aliases to %s\n", zshrcPath)
+	fmt.Printf("  Created centralized config at %s\n", configPath)
 	fmt.Printf("  Run 'source ~/.zshrc' or restart your shell to activate aliases\n")
 }
 
@@ -517,43 +507,25 @@ func setupFishAliases() {
 		return
 	}
 
-	// Create fish config directory if it doesn't exist
-	fishConfigDir := filepath.Join(homeDir, ".config", "fish")
-	if err := os.MkdirAll(fishConfigDir, 0755); err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating fish config directory: %v\n", err)
+	// Write centralized config with aliases enabled
+	// Fish completion stays in its standard location, so we don't track it here
+	if err := WriteCentralizedConfig("fish", true, false); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing centralized config: %v\n", err)
 		return
 	}
 
-	fishConfigPath := filepath.Join(fishConfigDir, "config.fish")
-
-	// Get the full path to the note binary
-	notePath, err := os.Executable()
-	if err != nil {
-		// Fallback to checking PATH
-		notePath, err = exec.LookPath("note")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Could not determine note command path: %v\n", err)
-			return
-		}
-	}
-
-	aliasLines := fmt.Sprintf("\n# note command aliases\nalias n '%s'\nalias nls '%s -l'\nalias nrm '%s -d'\n", notePath, notePath, notePath)
-
-	// Append to config.fish
-	file, err := os.OpenFile(fishConfigPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening fish config: %v\n", err)
-		return
-	}
-	defer file.Close()
-
-	if _, err := file.WriteString(aliasLines); err != nil {
-		fmt.Fprintf(os.Stderr, "Error writing aliases to fish config: %v\n", err)
+	// Ensure source line exists in config.fish
+	if err := EnsureSourceLine("fish"); err != nil {
+		fmt.Fprintf(os.Stderr, "Error adding source line: %v\n", err)
 		return
 	}
 
+	// Clean up legacy config
+	CleanupLegacyConfig("fish")
+
+	configPath := filepath.Join(homeDir, FishCentralizedConfig)
 	fmt.Printf("✓ Fish aliases setup complete!\n")
-	fmt.Printf("  Added 'n', 'nls', and 'nrm' aliases to %s\n", fishConfigPath)
+	fmt.Printf("  Created centralized config at %s\n", configPath)
 	fmt.Printf("  Restart your shell to activate aliases\n")
 }
 
